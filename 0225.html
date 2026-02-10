@@ -157,14 +157,20 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .reset-btn {
+    position: fixed;        /* 關鍵 */
+    bottom: 10px;           /* 距離畫面底部 */
+    left: 50%;
+    transform: translateX(-50%);
+    
     background: none;
     border: none;
     color: #ccc;
     font-size: 10px;
-    margin-top: 120px; /* ← 這裡調大 */
     cursor: pointer;
     text-decoration: underline;
+    z-index: 999;
 }
+
 
     </style>
 </head>
