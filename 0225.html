@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扭蛋圖鑑</title>
+    <style>
+        :root {
+            --primary: #003366; 
+            --accent: #003366;  
+            --star-color: #f1c40f;
+            --locked-bg: #2f3542; 
+            --unlocked-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: #f1f2f6;
+            margin: 0; padding: 15px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .header { text-align: center; margin-bottom: 5px; }
+        h1 { color: var(--primary); margin: 10px 0; font-size: 26px; letter-spacing: 4px; }
+        .status-text { font-size: 13px; color: #57606f; margin-bottom: 15px; }
+        #current { color: var(--accent); font-weight: bold; }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 450px;
+            perspective: 1000px;
+        }
+
+        .card {
+            aspect-ratio: 1/1;
+            cursor: pointer;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card.unlocked { transform: rotateY(180deg); }
+
+        .card-face {
+            position: absolute;
+            width: 100%; height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .card-front {
+            background: var(--locked-bg);
+            color: rgba(255,255,255,0.3);
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .card-front .card-num {
+            position: absolute;
+            top: 5px; left: 5px;
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+            font-weight: normal;
+        }
+
+        .card-back {
+            background: var(--unlocked-bg);
+            transform: rotateY(180deg);
+            flex-direction: column;
+        }
+
+        .mini-stars {
+            position: absolute;
+            top: 4px; left: 4px;
+            font-size: 6px;
+            color: var(--star-color);
+        }
+
+        .mini-name {
+            position: absolute;
+            bottom: 3px;
+            width: 90%;
+            text-align: center;
+            font-size: 8px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: bold;
+        }
+
+        .toy-img { width: 70%; height: 70%; object-fit: contain; margin-bottom: 8px; }
+        
+        #overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            justify-content: center; align-items: center;
+            z-index: 1000; flex-direction: column;
+            animation: fadeIn 0.3s ease;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* 內容容器：允許捲動但隱藏滑桿 */
+        .modal-content-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 350px;
+            max-height: 85vh; 
+            overflow-y: auto; 
+            padding: 10px;
+            
+            /* 隱藏捲軸 - 針對 Chrome, Safari 和 Opera */
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        /* 隱藏捲軸 - 針對 Chrome, Safari 和 Opera */
+        .modal-content-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+
+        .modal-img {
+            width: 160px; height: 160px;
+            object-fit: contain;
+            margin-bottom: 20px;
+            background: white; border-radius: 20px; padding: 20px;
+            flex-shrink: 0;
+        }
+
+        .item-name { font-size: 24px; font-weight: bold; color: white; margin-bottom: 5px; flex-shrink: 0; text-align: center; }
+        .stars { color: var(--star-color); font-size: 18px; letter-spacing: 5px; margin-bottom: 15px; flex-shrink: 0; }
+        
+        .item-desc {
+            color: #ecf0f1;
+            font-size: 16px;
+            line-height: 1.8;
+            width: 100%;
+            text-align: justify; 
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .reset-btn { background: none; border: none; color: #ccc; font-size: 10px; margin-top: 40px; cursor: pointer; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>扭蛋圖鑑</h1>
+    </div>
+
+    <div class="status-text">已收集：<span id="current">0</span> / 25</div>
+
+    <div class="gallery" id="container"></div>
+
+    <div id="overlay" onclick="closeModal()">
+        <div class="modal-content-wrapper" onclick="event.stopPropagation()">
+            <img id="modal-img" src="" class="modal-img">
+            <div id="modal-name" class="item-name"></div>
+            <div id="modal-stars" class="stars"></div>
+            <div id="modal-desc" class="item-desc"></div>
+            <p style="font-size: 12px; color: #777; margin-top: 10px; text-align: center;">點擊返回</p>
+        </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetGallery()">重置進度</button>
+
+    <script>
+        const COUNT = 25;
+        
+        const itemDetails = {
+            1: { name: "生", stars: 2, desc: "", img: "img/生.png" },
+            2: { name: "一個椅一個桶", stars: 5, desc: "", img:"img/一個椅一個桶.PNG" },
+            3: { name: "敬請期待", stars: 1, desc: "", img: "img/1.jpg" },
+            4: { name: "敬請期待", stars: 1, desc: "", img: "img/8.jpg" },
+            5: { name: "一個鍋蓋一個碗", stars: 5, desc: "", img: "img/一個鍋蓋一個碗.PNG" },
+            6: { name: "敬請期待", stars: 1, desc: "", img: "img/3.jpg" },
+            7: { name: "日", stars: 2, desc: "", img: "img/日.png" },
+            8: { name: "敬請期待", stars: 1, desc: "", img: "img/4.jpg" },
+            9: { name: "一個鍋蓋兩個碗", stars: 5, desc: "", img: "img/一個鍋蓋兩個碗.PNG" },
+            10: { name: "樹懶先生", stars: 4, desc: "", img: "img/樹懶先生.PNG" },
+            11: { name: "油門在右邊", stars: 5, desc: "", img: "img/油門在右邊.PNG" },
+            12: { name: "敬請期待", stars: 1, desc: "", img: "img/5.jpg" },
+            13: { name: "快", stars: 2, desc: "", img: "img/快.png" },
+            14: { name: "敬請期待", stars: 1, desc: "", img: "img/6.jpg" },
+            15: { name: "樹懶棒棒糖", stars: 4, desc: "", img: "img/樹懶棒棒糖.JPG" },
+            16: { name: "敬請期待", stars: 1, desc: "", img: "img/7.jpg" },
+            17: { name: "茱蒂戒指", stars: 3, desc: "", img: "img/茱蒂戒指.png" },
+            18: { name: "鍋蓋兄弟與筷子兄弟", stars: 5, desc: "", img: "img/鍋蓋兄弟與筷子兄弟.PNG" },
+            19: { name: "樂", stars: 2, desc: "", img: "img/樂.png" },
+            20: { 
+                name: "20歲生日快樂啊!!!", 
+                stars: 10,
+                desc: "哎呦終於輪到你20了 從10歲的相識 到現在20了\n說短不短 說長非常長\n長到佔據生命中的二分之一了欸\n\n我之前常常會想 如果我們不是在國小的時候認識 我們還會這麼好嗎 還玩得在一起嗎 因為我覺得我們在個性上 待人處事上 都太不一樣了\n所以我沒辦法百分之百的確定 不管我們在什麼時候遇見都能變成契合的朋友\n但我可以百分之百的肯定說 我好羨慕你有我這個朋友阿 嘻嘻 不準給我那個臉 好啦只能說謝謝緣分讓我們在最適合的時候遇見\n\n惠婷想要 惠婷得到\n看吧 沒騙你吧 圓圓的 透明 算透明吧 有創意 實在太有創意了 好羨慕你有這麼有創意的朋友 好了是不是說不準給我那個臉\n你還記得我們之前去北車扭扭蛋嗎 在那之前我早就準備好你的生日禮物了\n那天我們剛好有看到這款爵士鼓的扭蛋 你說很可愛很想要 超好笑我那時候有點緊張 我怕你真扭了 我就在旁邊說了一句 這個要就要扭整組 講完我就走去看別的 留你在原地看了好久 後來我們一起走了 我才鬆一口氣 還好你沒扭 還好你也喜歡這個\n\n生日快樂！以後還要繼續一起朋友一生一起走好多年欸 然後以後不準雞雞掰掰我 不準自己走路很快不等我 不然我們的友誼就到此為止了", 
+                img: "img/20.jpg" 
+            },
+            21: { name: "敬請期待", stars: 1, desc: "", img: "img/9.jpg" },
+            22: { name: "敬請期待", stars: 1, desc: "", img: "img/10.jpg" },
+            23: { name: "敬請期待", stars: 1, desc: "", img: "img/11.jpg" },
+            24: { name: "敬請期待", stars: 1, desc: "", img: "img/2.jpg" },
+            25: { name: "!", stars: 2, desc: "", img: "img/25.png" }
+        };
+
+        const container = document.getElementById('container');
+        let unlockedTotal = 0;
+
+        function setup() {
+            container.innerHTML = '';
+            unlockedTotal = 0;
+            for (let i = 1; i <= COUNT; i++) {
+                const isSaved = localStorage.getItem(`toy_${i}`);
+                if (isSaved) unlockedTotal++;
+                const detail = itemDetails[i];
+                const card = document.createElement('div');
+                card.id = `card-${i}`;
+                card.className = `card ${isSaved ? 'unlocked' : ''}`;
+                card.innerHTML = `
+                    <div class="card-face card-front">
+                        <span class="card-num">${i}</span> <div>?</div>
+                    </div>
+                    <div class="card-face card-back">
+                        <div class="mini-stars">${"★".repeat(detail.stars)}</div>
+                        <img src="${detail.img}" class="toy-img">
+                        <div class="mini-name">${detail.name}</div>
+                    </div>
+                `;
+                card.onclick = () => handleCardClick(i);
+                container.appendChild(card);
+            }
+            document.getElementById('current').innerText = unlockedTotal;
+        }
+
+        function handleCardClick(id) {
+            const isSaved = localStorage.getItem(`toy_${id}`);
+            if (!isSaved) {
+                localStorage.setItem(`toy_${id}`, 'true');
+                unlockedTotal++;
+                document.getElementById(`card-${id}`).classList.add('unlocked');
+                document.getElementById('current').innerText = unlockedTotal;
+                setTimeout(() => showModal(id), 700);
+            } else {
+                showModal(id);
+            }
+        }
+
+        function showModal(id) {
+            const detail = itemDetails[id];
+            const mImg = document.getElementById('modal-img');
+            const mName = document.getElementById('modal-name');
+            const mStars = document.getElementById('modal-stars');
+            const mDesc = document.getElementById('modal-desc');
+
+            mName.innerText = detail.name;
+            mDesc.innerText = detail.desc;
+
+            if (id === 20) {
+                mImg.style.display = 'none';
+                mStars.style.display = 'none';
+            } else {
+                mImg.style.display = 'block';
+                mStars.style.display = 'block';
+                mImg.src = detail.img;
+                mStars.innerText = "⭐".repeat(detail.stars);
+            }
+
+            document.getElementById('overlay').style.display = 'flex';
+            document.querySelector('.modal-content-wrapper').scrollTop = 0;
+        }
+
+        function closeModal() { document.getElementById('overlay').style.display = 'none'; }
+
+        function resetGallery() {
+            if (confirm("你確定？楊會談是笨蛋！")) {
+                for (let i = 1; i <= COUNT; i++) localStorage.removeItem(`toy_${i}`);
+                setup();
+            }
+        }
+
+            setup();
+    </script>
+</body>
+</html>
