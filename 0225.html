@@ -168,13 +168,21 @@
 
     <div class="gallery" id="container"></div>
 
-    <div id="overlay" onclick="closeModal()">
-        <div class="modal-content-wrapper" onclick="event.stopPropagation()">
+        
+        <div id="overlay" ontouchstart="closeModal()" onclick="closeModal()">    
+        <div class="modal-content-wrapper"
+            ontouchstart="event.stopPropagation()"
+            onclick="event.stopPropagation()">
             <img id="modal-img" src="" class="modal-img">
             <div id="modal-name" class="item-name"></div>
             <div id="modal-stars" class="stars"></div>
             <div id="modal-desc" class="item-desc"></div>
-            <p style="font-size: 12px; color: #777; margin-top: 10px; text-align: center;">點擊返回</p>
+            <p ontouchstart="closeModal()"
+    onclick="closeModal()"
+    style="font-size: 12px; color: #777; margin-top: 10px; text-align: center;">
+    點擊返回
+    </p>
+
         </div>
     </div>
 
