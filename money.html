@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
-    <title>小攤位收銀 Pro - 最終功能版</title>
+    <title>小攤位收銀 Pro - 防縮放版</title>
     <style>
         :root {
             --safe-left: env(safe-area-inset-left);
@@ -17,6 +17,7 @@
             -webkit-user-select: none; 
             -webkit-touch-callout: none; 
             user-select: none;
+            /* 2. CSS 層級禁用雙擊縮放手勢 */
             touch-action: manipulation; 
         }
         
@@ -36,7 +37,6 @@
         .panel { background: #2d2d2d; padding: 10px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
         .panel-middle { display: grid; grid-template-rows: 1.2fr 1fr; gap: 8px; }
 
-        /* 商品按鈕樣式 */
         .btn-item { 
             flex: 1; font-size: 1.2rem; border: 3px solid transparent; 
             border-radius: 12px; color: white; font-weight: bold; 
@@ -47,7 +47,6 @@
         #btn-玉米 { background: #f1c40f; color: #2d3436; }
         .selected { border-color: #fff !important; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
 
-        /* 完售印章（移植自你提供的版本） */
         .btn-item.sold-out::after { 
             content: "完售"; position: absolute; top: 50%; left: 50%; 
             transform: translate(-50%, -50%) rotate(-15deg); 
@@ -61,7 +60,6 @@
             background: rgba(0,0,0,0.6); border-radius: 12px; z-index: 5;
         }
 
-        /* 玉米快速選單 */
         #corn-menu {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); z-index: 100; flex-direction: column; 
@@ -152,7 +150,21 @@
 </div>
 
 <script>
-    document.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+    // 核心修正：攔截雙擊手勢防止放大
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', e => {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            e.preventDefault(); // 300ms 內的連續點擊視為雙擊，攔截其預設放大行為
+        }
+        lastTouchEnd = now;
+    }, false);
+
+    // 防止多指縮放
+    document.addEventListener('touchstart', e => { 
+        if (e.touches.length > 1) e.preventDefault(); 
+    }, { passive: false });
+
     let total = 0, paid = 0, selectedItemName = "", basket = {}; 
     const prices = {"雞蛋糕大": 100, "雞蛋糕小": 50};
     let pressTimer, itemDeleteTimer;
@@ -165,7 +177,6 @@
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('load', () => { checkOrientation(); updateReport(); update(); });
 
-    // 雞蛋糕專用：長按 500ms 觸發完售印章
     function startSoldOutLongPress(e, name) {
         pressTimer = setTimeout(() => {
             const btn = document.getElementById(`btn-${name}`);
@@ -174,7 +185,6 @@
         }, 500);
     }
 
-    // 玉米專用：長按 500ms 彈出選單
     function startCornLongPress(e) {
         pressTimer = setTimeout(() => {
             document.getElementById('corn-menu').style.display = 'flex';
@@ -182,7 +192,6 @@
         }, 500);
     }
 
-    // 明細列表：長按 500ms 整行刪除
     function startItemLongPress(e, name) {
         itemDeleteTimer = setTimeout(() => {
             if (basket[name]) {
