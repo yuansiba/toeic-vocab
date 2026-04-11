@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>小攤位收銀系統 - 極致流暢版</title>
+    <style>
+        :root {
+            /* 定義 iPhone 的安全區域 */
+            --safe-left: env(safe-area-inset-left);
+            --safe-right: env(safe-area-inset-right);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        * { 
+            box-sizing: border-box; 
+            -webkit-user-select: none; 
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            margin: 0; 
+            padding: 0;
+            background-color: #1a1a1a; 
+            color: white; 
+            /* 使用 svh 確保在 Safari 工具列出現時不會被推擠 */
+            height: 100svh; 
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* --- 橫向模式 (收銀) --- */
+        .main-layout {
+            display: none; /* 預設隱藏，由 JS 判斷開啟 */
+            grid-template-columns: 1fr 1fr 1.2fr; 
+            gap: 10px; 
+            height: 100%;
+            padding: 8px var(--safe-right) var(--safe-bottom) var(--safe-left);
+        }
+        
+        /* --- 直向模式 (報表) --- */
+        #report-panel { 
+            display: none; 
+            flex-direction: column;
+            padding: 40px 25px var(--safe-bottom); 
+            height: 100%; 
+            overflow-y: auto; 
+            background: #000; 
+        }
+
+        /* 報表 UI */
+        .report-header { font-size: 1.8rem; font-weight: bold; color: #2ecc71; margin-bottom: 20px; }
+        .stat-card { background: #2d2d2d; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
+        .log-item { padding: 12px 0; border-bottom: 1px solid #333; }
+        .log-detail { font-size: 0.85rem; color: #888; margin-top: 4px; }
+
+        /* 收銀 UI 元件 */
+        .panel { background: #2d2d2d; padding: 10px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+        .order-list { flex: 1; background: #000; border-radius: 10px; padding: 12px; overflow-y: auto; font-size: 1.2rem; color: #f1c40f; border: 1px solid #444; }
+        .order-item { display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #333; margin-bottom: 8px; }
+        
+        .qty-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; height: 35%; }
+        .btn-qty { font-size: 1.4rem; background: #6c5ce7; border: none; border-radius: 10px; color: white; font-weight: bold; }
+        
+        .display-box { background: #000; padding: 12px; border-radius: 12px; transition: background 0.3s; }
+        .flash-success { background: #1b4d31 !important; }
+        #total-txt { font-size: 1.6rem; color: #2ecc71; margin: 0; font-weight: bold; }
+        #change-txt { font-size: 2.2rem; color: #f1c40f; margin: 0; border-top: 1px solid #333; padding-top: 5px; font-weight: 900; }
+        
+        .btn-item { flex: 1; font-size: 1.3rem; background: #2980b9; border: 3px solid transparent; border-radius: 12px; color: white; font-weight: bold; }
+        .selected { border-color: #fff !important; background: #3498db !important; }
+        
+        .cash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; }
+        .btn-cash { font-size: 1.2rem; background: #27ae60; border: none; border-radius: 10px; color: white; font-weight: bold; }
+        .btn-reset { height: 75px; background: #e74c3c; font-size: 1.7rem; margin-top: auto; border: none; border-radius: 15px; color: white; font-weight: bold; }
+        
+        button:active { opacity: 0.7; transform: scale(0.95); }
+
+        .clear-btn { background: #c0392b; color: white; border: none; padding: 15px; border-radius: 12px; margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="cash-layout" class="main-layout">
+    <div class="panel">
+        <button class="btn-item" onclick="selProd('雞蛋糕大', 100, this)">雞蛋糕-大<br>$100</button>
+        <button class="btn-item" onclick="selProd('雞蛋糕小', 50, this)">雞蛋糕-小<br>$50</button>
+        <button class="btn-item" onclick="selProd('玉米', 40, this)">玉米<br>$40</button>
+    </div>
+
+    <div class="panel">
+        <div id="order-list" class="order-list"></div>
+        <div class="qty-grid">
+            <button class="btn-qty" onclick="addOrder(1)">+1</button>
+            <button class="btn-qty" onclick="addOrder(2)">+2</button>
+            <button class="btn-qty" onclick="addOrder(3)">+3</button>
+            <button class="btn-qty" onclick="addOrder(4)">+4</button>
+            <button class="btn-qty" onclick="addOrder(5)">+5</button>
+            <button class="btn-qty" onclick="addOrder(6)">+6</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div id="display-area" class="display-box">
+            <p id="total-txt">應收: $0</p>
+            <p id="paid-txt" style="margin:5px 0; color:#3498db;">實收: $0</p>
+            <p id="change-txt">找零: --</p>
+        </div>
+        <div class="cash-grid">
+            <button class="btn-cash" onclick="addPaid(1000)">1000</button>
+            <button class="btn-cash" onclick="addPaid(500)">500</button>
+            <button class="btn-cash" onclick="addPaid(100)">100</button>
+            <button class="btn-cash" onclick="addPaid(50)">50</button>
+            <button class="btn-cash" onclick="addPaid(10)">10</button>
+            <button class="btn-cash" style="background:#7f8c8d" onclick="clearPaid()">清實收</button>
+        </div>
+        <button class="btn-reset" onclick="resetAll()">完成結帳</button>
+    </div>
+</div>
+
+<div id="report-panel">
+    <div class="report-header">今日營業數據</div>
+    <div class="stat-card">
+        <div id="stat-total" style="font-size: 1.8rem; color: #f1c40f; font-weight: bold;">總營收: $0</div>
+        <div id="stat-count" style="margin-top: 8px; color: #aaa;">總單數: 0 筆</div>
+    </div>
+    <div id="log-container" style="flex: 1; overflow-y: auto;"></div>
+    <button class="clear-btn" onclick="clearHistory()">清空所有數據</button>
+</div>
+
+<script>
+    let total = 0, paid = 0, selectedPrice = 0, selectedItemName = "", basket = {}; 
+    const prices = {"雞蛋糕大": 100, "雞蛋糕小": 50, "玉米": 40};
+
+    // 關鍵：偵測螢幕方向與高度，解決 Safari 工具列佔位問題
+    function checkOrientation() {
+        const isLandscape = window.innerWidth > window.innerHeight;
+        const cashLayout = document.getElementById('cash-layout');
+        const reportPanel = document.getElementById('report-panel');
+
+        if (isLandscape) {
+            cashLayout.style.display = 'grid';
+            reportPanel.style.display = 'none';
+            // 橫向時自動隱藏工具列的技巧：捲動 1 像素
+            window.scrollTo(0, 1);
+        } else {
+            cashLayout.style.display = 'none';
+            reportPanel.style.display = 'flex';
+        }
+    }
+
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('load', () => {
+        checkOrientation();
+        updateReport();
+        update();
+    });
+
+    function selProd(name, price, el) {
+        selectedPrice = price;
+        selectedItemName = name;
+        document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    function addOrder(qty) {
+        if (!selectedItemName) return;
+        if (!basket[selectedItemName]) basket[selectedItemName] = 0;
+        basket[selectedItemName] += qty;
+        total += (selectedPrice * qty);
+        selectedPrice = 0; selectedItemName = "";
+        document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
+        update();
+    }
+
+    function addPaid(amount) { paid += amount; update(); }
+    function clearPaid() { paid = 0; update(); }
+
+    function update() {
+        document.getElementById('total-txt').innerText = `應收: $${total}`;
+        document.getElementById('paid-txt').innerText = `實收: $${paid}`;
+        const changeDiv = document.getElementById('change-txt');
+        
+        if (paid === 0) { changeDiv.innerText = "找零: --"; changeDiv.style.color = "#f1c40f"; }
+        else if (paid < total) { changeDiv.innerText = `還差: $${total - paid}`; changeDiv.style.color = "#e74c3c"; }
+        else { changeDiv.innerText = `找零: $${paid - total}`; changeDiv.style.color = "#2ecc71"; }
+
+        const listDiv = document.getElementById('order-list');
+        listDiv.innerHTML = "";
+        for (let name in basket) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = "order-item";
+            itemDiv.innerHTML = `<div>${name}</div><span>x ${basket[name]}</span>`;
+            listDiv.appendChild(itemDiv);
+        }
+    }
+
+    function resetAll() {
+        if (total === 0) return;
+        const area = document.getElementById('display-area');
+        area.classList.add('flash-success');
+        setTimeout(() => area.classList.remove('flash-success'), 400);
+
+        let sales = parseFloat(localStorage.getItem('total_sales') || 0);
+        let counts = parseInt(localStorage.getItem('order_counts') || 0);
+        let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
+
+        const now = new Date();
+        const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+        let detailStr = Object.entries(basket).map(([n, q]) => `${n}x${q}`).join(', ');
+
+        logs.unshift({ time: timeStr, amount: total, detail: detailStr });
+        localStorage.setItem('total_sales', sales + total);
+        localStorage.setItem('order_counts', counts + 1);
+        localStorage.setItem('sales_logs', JSON.stringify(logs.slice(0, 100)));
+
+        total = 0; paid = 0; basket = {};
+        updateReport();
+        update();
+    }
+
+    function updateReport() {
+        let sales = localStorage.getItem('total_sales') || 0;
+        let counts = localStorage.getItem('order_counts') || 0;
+        let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
+
+        document.getElementById('stat-total').innerText = `總營收: $${sales}`;
+        document.getElementById('stat-count').innerText = `總單數: ${counts} 筆`;
+
+        const logContainer = document.getElementById('log-container');
+        logContainer.innerHTML = logs.map(log => `
+            <div class="log-item">
+                <div style="display:flex; justify-content:space-between;">
+                    <span style="color:#2ecc71;">[${log.time}] 成交</span>
+                    <span style="font-weight:bold;">$${log.amount}</span>
+                </div>
+                <div class="log-detail">${log.detail}</div>
+            </div>
+        `).join('');
+    }
+
+    function clearHistory() {
+        if (confirm("確定要清空今天的所有營業數據嗎？")) {
+            localStorage.clear();
+            updateReport();
+        }
+    }
+</script>
+</body>
+</html>
