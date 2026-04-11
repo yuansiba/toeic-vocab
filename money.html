@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
-    <title>小攤位收銀 Pro - 高按鈕版</title>
+    <title>小攤位收銀 Pro - 橫式印章版</title>
     <style>
         :root {
             --safe-left: env(safe-area-inset-left);
@@ -15,7 +15,7 @@
         * {
             box-sizing: border-box;
             -webkit-user-select: none;
-            -webkit-touch-callout: none; /* 停用 iOS 長按彈出視窗 */
+            -webkit-touch-callout: none;
             user-select: none;
             touch-action: manipulation; 
         }
@@ -27,9 +27,8 @@
             height: 100svh; width: 100vw; overflow: hidden;
         }
 
-        /* 核心按鈕防縮放設置 */
         button {
-            touch-action: none; /* 徹底停用所有瀏覽器手勢，防止放大 */
+            touch-action: none;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -43,49 +42,48 @@
         #report-panel { display: none; flex-direction: column; padding: 20px; height: 100%; overflow-y: auto; background: #000; }
         .panel { background: #2d2d2d; padding: 10px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
         
-        /* 重新分配中間面板：明細縮小，數量鍵拉高 */
-        .panel-middle { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px; 
-        }
+        .panel-middle { display: flex; flex-direction: column; gap: 8px; }
 
-        /* 商品明細：極度緊湊版，剛好裝三個 */
         .order-list { 
             background: #000; border-radius: 10px; padding: 2px; 
             overflow: hidden; border: 1px solid #444; 
-            height: 105px; /* 高度縮減，留空間給下方 */
-            flex-shrink: 0;
+            height: 105px; flex-shrink: 0;
         }
         .order-item { 
             display: flex; justify-content: space-between; 
             height: 34px; align-items: center; padding: 0 10px;
             border-bottom: 1px solid #333; color: #f1c40f; 
-            font-size: 0.85rem; /* 字體縮小 */
+            font-size: 0.85rem;
         }
 
-        /* 數量按鈕：佔滿剩餘空間，變得更高 */
         .qty-grid { 
             display: grid; grid-template-columns: repeat(2, 1fr); 
             grid-template-rows: repeat(3, 1fr); grid-auto-flow: column; 
-            gap: 6px; 
-            flex-grow: 1; /* 自動長高 */
+            gap: 6px; flex-grow: 1;
         }
         .btn-qty { font-size: 1.6rem; background: #6c5ce7; border: none; border-radius: 12px; color: white; font-weight: bold; }
 
-        /* 商品與收銀按鈕維持樣式 */
-        .btn-item { flex: 1; font-size: 1.2rem; border: 3px solid transparent; border-radius: 12px; color: white; font-weight: bold; position: relative; }
+        .btn-item { flex: 1; font-size: 1.2rem; border: 3px solid transparent; border-radius: 12px; color: white; font-weight: bold; position: relative; overflow: hidden; }
         #btn-雞蛋糕大, #btn-雞蛋糕小 { background: #a67c52; }
         #btn-玉米 { background: #f1c40f; color: #2d3436; }
         .selected { border-color: #fff !important; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
 
+        /* 完售印章修正：橫式平放，置中 */
         .btn-item.sold-out::after {
             content: "完售"; position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%) rotate(-15deg);
-            font-size: 1.8rem; color: #e74c3c; border: 4px solid #e74c3c;
-            padding: 4px 12px; border-radius: 8px; font-weight: 900; z-index: 10;
+            /* 關鍵：移除 rotate，保持橫式平放 */
+            transform: translate(-50%, -50%) rotate(0deg); 
+            font-size: 1.1rem; /* 字體縮小以適應平放 */
+            color: #e74c3c; border: 4px solid #e74c3c; /* 加粗邊框看起來更像印章 */
+            padding: 3px 10px; border-radius: 8px; font-weight: 900; 
+            z-index: 10; white-space: nowrap;
+            max-width: 90%; /* 防止超出 */
+            background-color: transparent; /* 保持背景透明，靠 ::before 的遮罩 */
+            pointer-events: none;
+            letter-spacing: 2px; /* 字距拉開一點更清晰 */
         }
-        .btn-item.sold-out::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); border-radius: 12px; z-index: 5; }
+        /* 完售時的黑色半透明遮罩 */
+        .btn-item.sold-out::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); border-radius: 12px; z-index: 5; }
 
         .display-box { background: #000; padding: 5px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: flex-end; border: 1px solid #444; min-height: 60px; }
         #total-txt { font-size: 1.2rem; color: #2ecc71; margin: 0; font-weight: bold; }
@@ -163,7 +161,6 @@
 </div>
 
 <script>
-    // --- 停用所有手機縮放與長按放大鏡功能 ---
     let lastTouchEnd = 0;
     document.addEventListener('touchend', (e) => {
         const now = Date.now();
@@ -171,14 +168,10 @@
         lastTouchEnd = now;
     }, false);
 
-    // 禁用右鍵/長按彈出菜單（防止長按放大鏡）
     window.oncontextmenu = function(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        return false;
+        event.preventDefault(); event.stopPropagation(); return false;
     };
 
-    // --- 收銀邏輯 ---
     let total = 0, paid = 0, selectedItemName = "", basket = {};
     const prices = {"雞蛋糕大": 100, "雞蛋糕小": 50};
     let pressTimer, itemDeleteTimer;
@@ -195,14 +188,14 @@
         pressTimer = setTimeout(() => {
             document.getElementById(`btn-${name}`).classList.toggle('sold-out');
             if (navigator.vibrate) navigator.vibrate(100);
-        }, 500);
+        }, 600);
     }
 
     function startCornLongPress(e) {
         pressTimer = setTimeout(() => {
             document.getElementById('corn-menu').style.display = 'flex';
             if (navigator.vibrate) navigator.vibrate(100);
-        }, 500);
+        }, 600);
     }
 
     function startItemLongPress(e, name) {
@@ -212,7 +205,7 @@
                 if (navigator.vibrate) navigator.vibrate(150);
                 calculateTotal(); update();
             }
-        }, 500);
+        }, 600);
     }
 
     function endLongPress() { clearTimeout(pressTimer); }
@@ -304,7 +297,7 @@
         document.getElementById('main-display').classList.add('success-anim');
         setTimeout(() => document.getElementById('main-display').classList.remove('success-anim'), 500);
         total = 0; paid = 0; basket = {}; selectedItemName = "";
-        document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
+        document.querySelectorAll('.btn- pointr-item').forEach(b => b.classList.remove('selected'));
         updateReport(); update();
     }
 
