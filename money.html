@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
-    <title>小攤位收銀</title>
+    <title>小攤位收銀 Pro - 專業配色版</title>
     <style>
         :root {
             --safe-left: env(safe-area-inset-left);
@@ -12,6 +12,7 @@
             --safe-bottom: env(safe-area-inset-bottom);
         }
 
+        /* 取消瀏覽器預設雙擊放大 */
         * { 
             box-sizing: border-box; 
             -webkit-user-select: none; 
@@ -43,15 +44,30 @@
             gap: 8px;
         }
 
+        /* 商品按鈕基礎樣式 */
         .btn-item { 
-            flex: 1; font-size: 1.2rem; background: #2980b9; 
-            border: 3px solid transparent; border-radius: 12px; 
-            color: white; font-weight: bold; position: relative; 
-            transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+            flex: 1; font-size: 1.2rem; border: 3px solid transparent; 
+            border-radius: 12px; color: white; font-weight: bold; 
+            position: relative; transition: all 0.2s; 
+            display: flex; align-items: center; justify-content: center;
         }
-        .selected { border-color: #fff !important; background: #3498db !important; }
         
-        /* 完售印章 */
+        /* 雞蛋糕：棕色配色 */
+        #btn-雞蛋糕大, #btn-雞蛋糕小 { 
+            background: #a67c52; /* 烤焦糖棕色 */
+            color: #ffffff;
+        }
+
+        /* 玉米：黃色配色 */
+        #btn-玉米 { 
+            background: #f1c40f; 
+            color: #2d3436; 
+        }
+
+        /* 選中狀態（白框） */
+        .selected { border-color: #fff !important; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
+        
+        /* 完售印章樣式 */
         .btn-item.sold-out::after { 
             content: "完售"; 
             position: absolute; top: 50%; left: 50%; 
@@ -63,7 +79,7 @@
         }
         .btn-item.sold-out::before {
             content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.4); border-radius: 12px; z-index: 5;
+            background: rgba(0,0,0,0.6); border-radius: 12px; z-index: 5;
         }
         
         .order-list { 
@@ -72,17 +88,13 @@
         }
         .order-item { 
             display: flex; justify-content: space-between; 
-            padding: 8px 10px; 
-            border-bottom: 1px solid #333; color: #f1c40f; 
+            padding: 8px 10px; border-bottom: 1px solid #333; color: #f1c40f; 
             font-size: 1rem;
         }
         
         .qty-grid { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            grid-template-rows: repeat(3, 1fr);
-            grid-auto-flow: column;
-            gap: 6px; 
+            display: grid; grid-template-columns: repeat(2, 1fr); 
+            grid-template-rows: repeat(3, 1fr); grid-auto-flow: column; gap: 6px; 
         } 
         .btn-qty { font-size: 1.5rem; background: #6c5ce7; border: none; border-radius: 12px; color: white; font-weight: bold; }
         
@@ -104,8 +116,8 @@
 
 <div id="cash-layout" class="main-layout">
     <div class="panel">
-        <button class="btn-item" id="btn-雞蛋糕大" onpointerdown="startLongPress('雞蛋糕大')" onpointerup="endLongPress()" onclick="selProd('雞蛋糕大', 100, this)">雞蛋糕-大 $100</button>
-        <button class="btn-item" id="btn-雞蛋糕小" onpointerdown="startLongPress('雞蛋糕小')" onpointerup="endLongPress()" onclick="selProd('雞蛋糕小', 50, this)">雞蛋糕-小 $50</button>
+        <button class="btn-item" id="btn-雞蛋糕大" onpointerdown="startLongPress('雞蛋糕大')" onpointerup="endLongPress()" onclick="selProd('雞蛋糕大', 100, this)">雞蛋糕大 $100</button>
+        <button class="btn-item" id="btn-雞蛋糕小" onpointerdown="startLongPress('雞蛋糕小')" onpointerup="endLongPress()" onclick="selProd('雞蛋糕小', 50, this)">雞蛋糕小 $50</button>
         <button class="btn-item" id="btn-玉米" onpointerdown="startLongPress('玉米')" onpointerup="endLongPress()" onclick="selProd('玉米', 40, this)">玉米 $40</button>
     </div>
 
@@ -152,6 +164,19 @@
 </div>
 
 <script>
+    // --- 手機防縮放核心腳本 ---
+    document.addEventListener('touchstart', function (event) {
+        if (event.touches.length > 1) event.preventDefault();
+    }, { passive: false });
+
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+        let now = (new Date()).getTime();
+        if (now - lastTouchEnd <= 300) event.preventDefault();
+        lastTouchEnd = now;
+    }, false);
+    // ------------------------
+
     let total = 0, paid = 0, selectedPrice = 0, selectedItemName = "", basket = {}; 
     const prices = {"雞蛋糕大": 100, "雞蛋糕小": 50, "玉米": 40};
     let pressTimer, itemPressTimer;
@@ -237,16 +262,13 @@
         }
     }
 
-    // 核心邏輯修正：應收與實收都必須 > 0 才記錄
     function resetAll() {
-        // 如果 總金額為 0 或 實收為 0，直接清空但不存檔
         if (total === 0 || paid === 0) {
             total = 0; paid = 0; basket = {}; selectedItemName = "";
             document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
             update();
             return; 
         }
-
         let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
         const now = new Date();
         const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -257,10 +279,8 @@
             detail: Object.entries(basket).map(([n, q]) => `${n}x${q}`).join(', ') 
         });
         localStorage.setItem('sales_logs', JSON.stringify(logs.slice(0, 300)));
-        
         document.getElementById('main-display').classList.add('success-anim');
         setTimeout(() => document.getElementById('main-display').classList.remove('success-anim'), 500);
-        
         total = 0; paid = 0; basket = {}; selectedItemName = "";
         document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
         updateReport(); update();
