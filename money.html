@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
-    <title>小攤位收銀 Pro - 按鈕加大版</title>
+    <title>小攤位收銀 Pro - 橫向印章版</title>
     <style>
         :root {
             --safe-left: env(safe-area-inset-left);
@@ -19,67 +19,95 @@
             background-color: #1a1a1a; color: white; height: 100svh; width: 100vw; overflow: hidden;
         }
 
+        /* 佈局切換 */
         .main-layout {
             display: none;
             grid-template-columns: 0.8fr 1fr 1.6fr; 
-            gap: 10px; height: 100%;
-            padding: 10px var(--safe-right) var(--safe-bottom) var(--safe-left);
+            gap: 8px; height: 100%;
+            padding: 8px var(--safe-right) var(--safe-bottom) var(--safe-left);
         }
         
         #report-panel { 
-            display: none; flex-direction: column; padding: 20px 25px; 
+            display: none; flex-direction: column; padding: 20px; 
             height: 100%; overflow-y: auto; background: #000; 
         }
 
-        .panel { background: #2d2d2d; padding: 10px; border-radius: 16px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+        .panel { background: #2d2d2d; padding: 10px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
         
-        /* 1. 商品按鈕高度優化 */
-        .btn-item { flex: 1; font-size: 1.3rem; background: #2980b9; border: 3px solid transparent; border-radius: 15px; color: white; font-weight: bold; position: relative; }
-        .btn-item.sold-out { background: #444 !important; color: #666 !important; opacity: 0.7; }
+        /* 商品按鈕 */
+        .btn-item { 
+            flex: 1; font-size: 1.2rem; background: #2980b9; 
+            border: 3px solid transparent; border-radius: 12px; 
+            color: white; font-weight: bold; position: relative; 
+            transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+        }
         .selected { border-color: #fff !important; background: #3498db !important; }
         
-        /* 2. 明細與數量區 */
-        .order-list { flex: 1; background: #000; border-radius: 10px; padding: 10px; overflow-y: auto; border: 1px solid #444; }
-        .order-item { display: flex; justify-content: space-between; padding: 12px 5px; border-bottom: 1px solid #333; color: #f1c40f; font-size: 1.1rem; }
-        
-        .qty-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; height: 55%; } /* 加大數量按鈕高度 */
-        .btn-qty { font-size: 1.5rem; background: #6c5ce7; border: none; border-radius: 12px; color: white; font-weight: bold; }
-        
-        /* 3. 右側顯示區優化：找零數字上移並靠右 */
-        .display-box { 
-            background: #000; padding: 12px 20px; border-radius: 12px; 
-            display: flex; justify-content: space-between; align-items: center;
-            border: 1px solid #444; min-height: 90px;
+        /* 完售印章樣式：斜框、橫字、紅字紅框、無底色 */
+        .btn-item.sold-out { 
+            background: #444 !important; 
+            color: #777 !important; 
+            border-color: #555 !important; 
+            opacity: 0.8;
         }
-        .text-info { display: flex; flex-direction: column; gap: 4px; }
-        #total-txt { font-size: 1.3rem; color: #2ecc71; margin: 0; font-weight: bold; }
-        #paid-txt { font-size: 1.1rem; color: #81ecec; margin: 0; font-weight: bold; }
-        
-        .change-info { text-align: right; }
-        .change-label { font-size: 1.1rem; color: #f1c40f; display: block; margin-bottom: -5px; }
-        #change-txt { font-size: 3.8rem; font-weight: 900; color: #f1c40f; margin: 0; }
 
-        /* 4. 現金按鈕高度最大化 */
-        .cash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex: 2.5; } /* 權重提高，按鈕會變長 */
-        .btn-cash { font-size: 1.8rem; background: #27ae60; border: none; border-radius: 15px; color: white; font-weight: bold; }
+        .btn-item.sold-out::after { 
+            content: "完售"; 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            /* 關鍵：使用 translate 置中並旋轉，white-space 確保字是橫的 */
+            transform: translate(-50%, -50%) rotate(-15deg); 
+            display: inline-block;
+            white-space: nowrap; 
+            
+            font-size: 1.8rem; 
+            color: #e74c3c; 
+            background: transparent; 
+            padding: 4px 12px; 
+            border-radius: 8px; 
+            border: 4px solid #e74c3c; 
+            
+            font-family: serif;
+            font-weight: 900;
+            letter-spacing: 2px;
+            z-index: 10;
+        }
+
+        /* 售完半透明遮罩 */
+        .btn-item.sold-out::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            border-radius: 12px;
+            z-index: 5;
+        }
+        
+        /* 其他 UI 樣式 */
+        .order-list { flex: 1; background: #000; border-radius: 10px; padding: 8px; overflow-y: auto; border: 1px solid #444; }
+        .order-item { display: flex; justify-content: space-between; padding: 12px 8px; border-bottom: 1px solid #333; color: #f1c40f; font-size: 1.1rem; }
+        .qty-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; flex: 2; } 
+        .btn-qty { font-size: 1.6rem; background: #6c5ce7; border: none; border-radius: 12px; color: white; font-weight: bold; }
+        .display-box { background: #000; padding: 5px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: flex-end; border: 1px solid #444; min-height: 60px; }
+        #total-txt { font-size: 1.2rem; color: #2ecc71; margin: 0; font-weight: bold; }
+        #paid-txt { font-size: 1rem; color: #81ecec; margin: 0; font-weight: bold; }
+        #change-txt { font-size: 3.5rem; font-weight: 900; color: #f1c40f; margin: 0; line-height: 0.9; }
+        .cash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; flex: 4; } 
+        .btn-cash { font-size: 2.1rem; background: #27ae60; border: none; border-radius: 15px; color: white; font-weight: bold; }
         .btn-clear { background: #4b4b4b; color: #bbb; font-size: 1.3rem; }
-        
-        .btn-reset { height: 75px; background: #e74c3c; font-size: 2rem; border: none; border-radius: 18px; color: white; font-weight: bold; box-shadow: 0 4px 0 #b03a2e; }
-
+        .btn-reset { height: 95px; background: #e74c3c; font-size: 2.5rem; border: none; border-radius: 18px; color: white; font-weight: bold; box-shadow: 0 5px 0 #b03a2e; }
         @keyframes successFlash { 0% { background-color: #2ecc71; } 100% { background-color: #000; } }
         .success-anim { animation: successFlash 0.5s ease-out; }
-        button:active:not(.btn-reset) { opacity: 0.7; transform: scale(0.95); }
     </style>
 </head>
 <body>
 
 <div id="cash-layout" class="main-layout">
     <div class="panel">
-        <div style="display:flex; flex-direction:column; gap:10px; flex:1">
-            <button class="btn-item" id="item-雞蛋糕大" onpointerdown="startLongPress(event, '雞蛋糕大')" onpointerup="cancelLongPress()" onclick="selProd('雞蛋糕大', 100, this)">雞蛋糕大 $100</button>
-            <button class="btn-item" id="item-雞蛋糕小" onpointerdown="startLongPress(event, '雞蛋糕小')" onpointerup="cancelLongPress()" onclick="selProd('雞蛋糕小', 50, this)">雞蛋糕小 $50</button>
-            <button class="btn-item" id="item-玉米" onpointerdown="startLongPress(event, '玉米')" onpointerup="cancelLongPress()" onclick="selProd('玉米', 40, this)">玉米 $40</button>
-        </div>
+        <button class="btn-item" id="btn-雞蛋糕大" onpointerdown="startLongPress('雞蛋糕大')" onpointerup="endLongPress()" onclick="selProd('雞蛋糕大', 100, this)">雞蛋糕-大 $100</button>
+        <button class="btn-item" id="btn-雞蛋糕小" onpointerdown="startLongPress('雞蛋糕小')" onpointerup="endLongPress()" onclick="selProd('雞蛋糕小', 50, this)">雞蛋糕-小 $50</button>
+        <button class="btn-item" id="btn-玉米" onpointerdown="startLongPress('玉米')" onpointerup="endLongPress()" onclick="selProd('玉米', 40, this)">玉米 $40</button>
     </div>
 
     <div class="panel">
@@ -96,21 +124,21 @@
 
     <div class="panel">
         <div class="display-box" id="main-display">
-            <div class="text-info">
+            <div style="display:flex; flex-direction:column; padding-bottom:5px;">
                 <p id="total-txt">應收: $0</p>
                 <p id="paid-txt">實收: $0</p>
             </div>
-            <div class="change-info">
-                <span class="change-label">找零</span>
+            <div style="display:flex; align-items:flex-start; gap:4px;">
+                <span style="color:#f1c40f; font-weight:bold; margin-top:4px;">找零</span>
                 <p id="change-txt">--</p>
             </div>
         </div>
         <div class="cash-grid">
             <button class="btn-cash" onclick="addPaid(1000)">1000</button>
-            <button class="btn-cash" onclick="addPaid(500)">500</button>
-            <button class="btn-cash" onclick="addPaid(100)">100</button>
             <button class="btn-cash" onclick="addPaid(50)">50</button>
+            <button class="btn-cash" onclick="addPaid(500)">500</button>
             <button class="btn-cash" onclick="addPaid(10)">10</button>
+            <button class="btn-cash" onclick="addPaid(100)">100</button>
             <button class="btn-cash btn-clear" onclick="clearPaid()">清實收</button>
         </div>
         <button class="btn-reset" onclick="resetAll()">完成結帳</button>
@@ -118,7 +146,7 @@
 </div>
 
 <div id="report-panel">
-    <h2 style="color:#2ecc71">今日數據回報</h2>
+    <h2 style="color:#2ecc71">今日營業數據</h2>
     <div id="stat-display" style="background:#2d2d2d; padding:15px; border-radius:12px; margin-bottom:15px; font-size:1.2rem;"></div>
     <div id="log-container"></div>
     <button onclick="clearHistory()" style="background:#c0392b; color:white; border:none; padding:15px; border-radius:12px; margin-top:20px; width:100%">清空當日數據</button>
@@ -127,7 +155,7 @@
 <script>
     let total = 0, paid = 0, selectedPrice = 0, selectedItemName = "", basket = {}; 
     const prices = {"雞蛋糕大": 100, "雞蛋糕小": 50, "玉米": 40};
-    let longPressTimer;
+    let pressTimer;
 
     function checkOrientation() {
         const isLandscape = window.innerWidth > window.innerHeight;
@@ -137,17 +165,18 @@
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('load', () => { checkOrientation(); updateReport(); update(); });
 
-    function startLongPress(e, name) {
-        longPressTimer = setTimeout(() => {
-            const btn = document.getElementById(`item-${name}`);
-            if (btn.classList.toggle('sold-out')) {
+    function startLongPress(name) {
+        pressTimer = setTimeout(() => {
+            const btn = document.getElementById(`btn-${name}`);
+            const isSoldOut = btn.classList.toggle('sold-out');
+            if (isSoldOut && selectedItemName === name) {
+                selectedItemName = ""; selectedPrice = 0;
                 btn.classList.remove('selected');
-                if (selectedItemName === name) { selectedItemName = ""; selectedPrice = 0; }
             }
-            if (navigator.vibrate) navigator.vibrate(60); 
-        }, 1000);
+            if (navigator.vibrate) navigator.vibrate(100);
+        }, 1200);
     }
-    function cancelLongPress() { clearTimeout(longPressTimer); }
+    function endLongPress() { clearTimeout(pressTimer); }
 
     function selProd(name, price, el) {
         if (el.classList.contains('sold-out')) return;
@@ -183,9 +212,8 @@
         document.getElementById('paid-txt').innerText = `實收: $${paid}`;
         const changeDiv = document.getElementById('change-txt');
         changeDiv.innerText = paid === 0 ? "--" : (paid < total ? `${total - paid}` : `${paid - total}`);
-
         const listDiv = document.getElementById('order-list');
-        listDiv.innerHTML = basket && Object.keys(basket).length > 0 ? "" : "<p style='color:#555;text-align:center'>等待點餐...</p>";
+        listDiv.innerHTML = Object.keys(basket).length > 0 ? "" : "<p style='color:#555;text-align:center'>點餐中...</p>";
         for (let name in basket) {
             const itemDiv = document.createElement('div');
             itemDiv.className = "order-item";
@@ -201,12 +229,9 @@
         const now = new Date();
         const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
         logs.unshift({ id: Date.now(), time: timeStr, amount: total, detail: Object.entries(basket).map(([n, q]) => `${n}x${q}`).join(', ') });
-        localStorage.setItem('sales_logs', JSON.stringify(logs.slice(0, 100)));
-        
-        const display = document.getElementById('main-display');
-        display.classList.add('success-anim');
-        setTimeout(() => display.classList.remove('success-anim'), 500);
-
+        localStorage.setItem('sales_logs', JSON.stringify(logs.slice(0, 300)));
+        document.getElementById('main-display').classList.add('success-anim');
+        setTimeout(() => document.getElementById('main-display').classList.remove('success-anim'), 500);
         total = 0; paid = 0; basket = {};
         updateReport(); update();
     }
@@ -214,16 +239,23 @@
     function updateReport() {
         let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
         let sum = logs.reduce((a, b) => a + b.amount, 0);
-        document.getElementById('stat-display').innerHTML = `總營收: <b style="color:#f1c40f">$${sum}</b> | 單數: <b>${logs.length}</b>`;
+        document.getElementById('stat-display').innerHTML = `總營收: <b style="color:#f1c40f">$${sum}</b> | 總單數: <b>${logs.length}</b>`;
         document.getElementById('log-container').innerHTML = logs.map(l => `
-            <div style="border-bottom:1px solid #333; padding:10px 0">
-                <span style="color:#2ecc71">[${l.time}] $${l.amount}</span><br>
-                <small style="color:#888">${l.detail}</small>
+            <div onclick="voidItem(${l.id}, ${l.amount})" style="border-bottom:1px solid #333; padding:12px 0">
+                <span style="color:#2ecc71">[${l.time}] $${l.amount}</span><br><small style="color:#aaa">${l.detail}</small>
             </div>
         `).join('');
     }
 
-    function clearHistory() { if (confirm("確定清空數據？")) { localStorage.clear(); updateReport(); } }
+    function voidItem(id, amt) {
+        if (confirm(`確定要作廢這筆 $${amt} 的訂單嗎？`)) {
+            let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
+            localStorage.setItem('sales_logs', JSON.stringify(logs.filter(l => l.id !== id)));
+            updateReport();
+        }
+    }
+
+    function clearHistory() { if (confirm("警告：這將清空所有營收數據！")) { localStorage.clear(); updateReport(); } }
 </script>
 </body>
 </html>
