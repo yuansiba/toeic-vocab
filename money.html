@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
-    <title>小攤位收銀 Pro - 橫式印章版</title>
+    <title>小攤位收銀 Pro - 優惠邏輯修正版</title>
     <style>
         :root {
             --safe-left: env(safe-area-inset-left);
@@ -27,10 +27,7 @@
             height: 100svh; width: 100vw; overflow: hidden;
         }
 
-        button {
-            touch-action: none;
-            -webkit-tap-highlight-color: transparent;
-        }
+        button { touch-action: none; -webkit-tap-highlight-color: transparent; }
 
         .main-layout {
             display: none;
@@ -41,7 +38,6 @@
         
         #report-panel { display: none; flex-direction: column; padding: 20px; height: 100%; overflow-y: auto; background: #000; }
         .panel { background: #2d2d2d; padding: 10px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
-        
         .panel-middle { display: flex; flex-direction: column; gap: 8px; }
 
         .order-list { 
@@ -68,21 +64,15 @@
         #btn-玉米 { background: #f1c40f; color: #2d3436; }
         .selected { border-color: #fff !important; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
 
-        /* 完售印章修正：橫式平放，置中 */
+        /* 完售印章：橫式平放 */
         .btn-item.sold-out::after {
             content: "完售"; position: absolute; top: 50%; left: 50%;
-            /* 關鍵：移除 rotate，保持橫式平放 */
-            transform: translate(-50%, -50%) rotate(0deg); 
-            font-size: 1.1rem; /* 字體縮小以適應平放 */
-            color: #e74c3c; border: 4px solid #e74c3c; /* 加粗邊框看起來更像印章 */
+            transform: translate(-50%, -50%);
+            font-size: 1.1rem; color: #e74c3c; border: 4px solid #e74c3c;
             padding: 3px 10px; border-radius: 8px; font-weight: 900; 
-            z-index: 10; white-space: nowrap;
-            max-width: 90%; /* 防止超出 */
-            background-color: transparent; /* 保持背景透明，靠 ::before 的遮罩 */
-            pointer-events: none;
-            letter-spacing: 2px; /* 字距拉開一點更清晰 */
+            z-index: 10; white-space: nowrap; max-width: 90%;
+            letter-spacing: 2px; pointer-events: none;
         }
-        /* 完售時的黑色半透明遮罩 */
         .btn-item.sold-out::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); border-radius: 12px; z-index: 5; }
 
         .display-box { background: #000; padding: 5px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: flex-end; border: 1px solid #444; min-height: 60px; }
@@ -103,30 +93,29 @@
 
 <div id="corn-menu" onclick="closeCornMenu()">
     <div class="corn-menu-content" onclick="event.stopPropagation()">
-        <h3 style="margin:0 0 10px 0; text-align:center; color:#f1c40f;">玉米快速加點</h3>
-        <button class="btn-corn-opt" style="background:#f1c40f;" onclick="quickCorn(1)">+ 1 隻 ($40)</button>
-        <button class="btn-corn-opt" style="background:#f39c12;" onclick="quickCorn(2)">+ 2 隻 ($75)</button>
-        <button class="btn-corn-opt" style="background:#e67e22;" onclick="quickCorn(3)">+ 3 隻 ($110)</button>
-        <button class="btn-corn-opt" style="background:#555; color:white; font-size:1rem; margin-top:10px;" onclick="closeCornMenu()">關閉選單</button>
+        <h3 style="margin:0 0 10px 0; text-align:center; color:#f1c40f;">玉米優惠選單</h3>
+        <button class="btn-corn-opt" style="background:#f1c40f;" onclick="addPromoCorn('玉米(2隻)', 75)">2 隻優惠價 $75</button>
+        <button class="btn-corn-opt" style="background:#f39c12;" onclick="addPromoCorn('玉米(3隻)', 110)">3 隻優惠價 $110</button>
+        <button class="btn-corn-opt" style="background:#555; color:white; font-size:1rem; margin-top:10px;" onclick="closeCornMenu()">取消</button>
     </div>
 </div>
 
 <div id="cash-layout" class="main-layout">
     <div class="panel">
-        <button class="btn-item" id="btn-雞蛋糕大" onpointerdown="startSoldOutLongPress(event, '雞蛋糕大')" onpointerup="endLongPress()" onpointerleave="endLongPress()" onclick="selProd('雞蛋糕大', 100, this)">大 $100</button>
-        <button class="btn-item" id="btn-雞蛋糕小" onpointerdown="startSoldOutLongPress(event, '雞蛋糕小')" onpointerup="endLongPress()" onpointerleave="endLongPress()" onclick="selProd('雞蛋糕小', 50, this)">小 $50</button>
-        <button class="btn-item" id="btn-玉米" onpointerdown="startCornLongPress(event)" onpointerup="endLongPress()" onpointerleave="endLongPress()" onclick="selProd('玉米', 40, this)">玉米 $40</button>
+        <button class="btn-item" id="btn-雞蛋糕大" onpointerdown="startPress(event, '雞蛋糕大')" onpointerup="endPress()" onclick="selProd('雞蛋糕大', 100, this)">大 $100</button>
+        <button class="btn-item" id="btn-雞蛋糕小" onpointerdown="startPress(event, '雞蛋糕小')" onpointerup="endPress()" onclick="selProd('雞蛋糕小', 50, this)">小 $50</button>
+        <button class="btn-item" id="btn-玉米" onpointerdown="startCornPress(event)" onpointerup="endPress()" onclick="selProd('玉米', 40, this)">玉米 $40</button>
     </div>
 
     <div class="panel panel-middle">
         <div id="order-list" class="order-list"></div>
         <div class="qty-grid">
-            <button class="btn-qty" onclick="addOrder(1)">+1</button>
-            <button class="btn-qty" onclick="addOrder(2)">+2</button>
-            <button class="btn-qty" onclick="addOrder(3)">+3</button>
-            <button class="btn-qty" onclick="addOrder(4)">+4</button>
-            <button class="btn-qty" onclick="addOrder(5)">+5</button>
-            <button class="btn-qty" onclick="addOrder(6)">+6</button>
+            <button class="btn-qty" onclick="adjustQty(1)">+1</button>
+            <button class="btn-qty" onclick="adjustQty(2)">+2</button>
+            <button class="btn-qty" onclick="adjustQty(3)">+3</button>
+            <button class="btn-qty" onclick="adjustQty(4)">+4</button>
+            <button class="btn-qty" onclick="adjustQty(5)">+5</button>
+            <button class="btn-qty" onclick="adjustQty(6)">+6</button>
         </div>
     </div>
 
@@ -161,20 +150,11 @@
 </div>
 
 <script>
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', (e) => {
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) e.preventDefault();
-        lastTouchEnd = now;
-    }, false);
+    window.oncontextmenu = function(e) { e.preventDefault(); return false; };
 
-    window.oncontextmenu = function(event) {
-        event.preventDefault(); event.stopPropagation(); return false;
-    };
-
-    let total = 0, paid = 0, selectedItemName = "", basket = {};
-    const prices = {"雞蛋糕大": 100, "雞蛋糕小": 50};
-    let pressTimer, itemDeleteTimer;
+    let total = 0, paid = 0, selectedKey = "", basket = {};
+    const itemPrices = {"雞蛋糕大": 100, "雞蛋糕小": 50, "玉米": 40};
+    let pressTimer;
 
     function checkOrientation() {
         const isLandscape = window.innerWidth > window.innerHeight;
@@ -184,77 +164,48 @@
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('load', () => { checkOrientation(); updateReport(); update(); });
 
-    function startSoldOutLongPress(e, name) {
-        pressTimer = setTimeout(() => {
-            document.getElementById(`btn-${name}`).classList.toggle('sold-out');
-            if (navigator.vibrate) navigator.vibrate(100);
-        }, 600);
-    }
-
-    function startCornLongPress(e) {
-        pressTimer = setTimeout(() => {
-            document.getElementById('corn-menu').style.display = 'flex';
-            if (navigator.vibrate) navigator.vibrate(100);
-        }, 600);
-    }
-
-    function startItemLongPress(e, name) {
-        itemDeleteTimer = setTimeout(() => {
-            if (basket[name]) {
-                delete basket[name];
-                if (navigator.vibrate) navigator.vibrate(150);
-                calculateTotal(); update();
-            }
-        }, 600);
-    }
-
-    function endLongPress() { clearTimeout(pressTimer); }
-    function endItemLongPress() { clearTimeout(itemDeleteTimer); }
+    // --- 長按邏輯 ---
+    function startPress(e, name) { pressTimer = setTimeout(() => { document.getElementById(`btn-${name}`).classList.toggle('sold-out'); if (navigator.vibrate) navigator.vibrate(100); }, 600); }
+    function startCornPress(e) { pressTimer = setTimeout(() => { document.getElementById('corn-menu').style.display = 'flex'; if (navigator.vibrate) navigator.vibrate(100); }, 600); }
+    function endPress() { clearTimeout(pressTimer); }
     function closeCornMenu() { document.getElementById('corn-menu').style.display = 'none'; }
 
-    function quickCorn(qty) {
-        if (!basket["玉米"]) basket["玉米"] = 0;
-        basket["玉米"] += qty;
-        selectedItemName = "玉米";
-        document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
-        document.getElementById('btn-玉米').classList.add('selected');
-        closeCornMenu(); calculateTotal(); update();
-    }
-
+    // --- 點餐邏輯 ---
     function selProd(name, price, el) {
         if (el.classList.contains('sold-out')) return;
-        if (!basket[name]) basket[name] = 0;
-        basket[name] += 1;
-        selectedItemName = name;
+        if (!basket[name]) basket[name] = { qty: 0, price: price };
+        basket[name].qty += 1;
+        selectedKey = name;
         document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
         el.classList.add('selected');
         calculateTotal(); update();
     }
 
-    function addOrder(qty) {
-        if (!selectedItemName) return;
-        basket[selectedItemName] += (qty - 1);
+    // 長按選單進入的優惠玉米
+    function addPromoCorn(label, price) {
+        basket[label] = { qty: 1, price: price }; // 優惠直接算一組
+        selectedKey = label;
+        document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
+        document.getElementById('btn-玉米').classList.add('selected');
+        closeCornMenu(); calculateTotal(); update();
+    }
+
+    function adjustQty(num) {
+        if (!selectedKey || !basket[selectedKey]) return;
+        basket[selectedKey].qty = num;
         calculateTotal(); update();
     }
 
     function calculateTotal() {
-        let newTotal = 0;
-        for (let name in basket) {
-            let qty = basket[name];
-            if (name === "玉米") {
-                let g3 = Math.floor(qty / 3); let r = qty % 3;
-                newTotal += (g3 * 110) + (r === 1 ? 40 : (r === 2 ? 75 : 0));
-            } else { newTotal += (prices[name] * qty); }
-        }
-        total = newTotal;
+        let sum = 0;
+        for (let key in basket) { sum += (basket[key].qty * basket[key].price); }
+        total = sum;
     }
 
-    function removeOne(name) {
-        if (basket[name] > 0) {
-            basket[name] -= 1;
-            if (basket[name] === 0) delete basket[name];
-            calculateTotal(); update();
-        }
+    function removeOne(key) {
+        if (basket[key].qty > 1) { basket[key].qty -= 1; } 
+        else { delete basket[key]; if(selectedKey === key) selectedKey = ""; }
+        calculateTotal(); update();
     }
 
     function addPaid(amount) { paid += amount; update(); }
@@ -265,39 +216,37 @@
         document.getElementById('paid-txt').innerText = `實收: $${paid}`;
         const c = document.getElementById('change-txt');
         c.innerText = paid === 0 ? "--" : (paid < total ? `${total - paid}` : `${paid - total}`);
+        
         const listDiv = document.getElementById('order-list');
         listDiv.innerHTML = "";
-        let count = 0;
-        for (let name in basket) {
-            if (count >= 3) break;
+        let keys = Object.keys(basket);
+        for (let i = 0; i < 3; i++) {
             const itemDiv = document.createElement('div');
             itemDiv.className = "order-item";
-            itemDiv.onpointerdown = (e) => startItemLongPress(e, name);
-            itemDiv.onpointerup = () => endItemLongPress();
-            itemDiv.onpointerleave = () => endItemLongPress();
-            itemDiv.onclick = () => removeOne(name);
-            itemDiv.innerHTML = `<div>${name}</div><span>x ${basket[name]}</span>`;
+            if (keys[i]) {
+                let k = keys[i];
+                itemDiv.onclick = () => removeOne(k);
+                itemDiv.innerHTML = `<div>${k}</div><span>x ${basket[k].qty}</span>`;
+            } else {
+                itemDiv.innerHTML = `<div></div><span></span>`; // 空列維持高度
+            }
             listDiv.appendChild(itemDiv);
-            count++;
         }
-        if (count === 0) listDiv.innerHTML = "<p style='color:#555;text-align:center;margin-top:35px;font-size:0.8rem;'>點餐中...</p>";
     }
 
     function resetAll() {
-        if (total === 0 || paid === 0) {
-            total = 0; paid = 0; basket = {}; selectedItemName = "";
-            document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
-            update(); return;
-        }
+        if (total === 0) return;
         let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
         const now = new Date();
         const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-        logs.unshift({ id: Date.now(), time: timeStr, amount: total, detail: Object.entries(basket).map(([n, q]) => `${n}x${q}`).join(', ') });
+        logs.unshift({ id: Date.now(), time: timeStr, amount: total, detail: Object.entries(basket).map(([n, obj]) => `${n}x${obj.qty}`).join(', ') });
         localStorage.setItem('sales_logs', JSON.stringify(logs.slice(0, 300)));
+        
         document.getElementById('main-display').classList.add('success-anim');
         setTimeout(() => document.getElementById('main-display').classList.remove('success-anim'), 500);
-        total = 0; paid = 0; basket = {}; selectedItemName = "";
-        document.querySelectorAll('.btn- pointr-item').forEach(b => b.classList.remove('selected'));
+        
+        total = 0; paid = 0; basket = {}; selectedKey = "";
+        document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
         updateReport(); update();
     }
 
