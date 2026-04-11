@@ -3,91 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>小攤位收銀系統 - 極致流暢版</title>
+    <meta name="theme-color" content="#1a1a1a">
+    <title>小攤位收銀 Pro - 專業實戰版</title>
     <style>
         :root {
-            /* 定義 iPhone 的安全區域 */
             --safe-left: env(safe-area-inset-left);
             --safe-right: env(safe-area-inset-right);
             --safe-bottom: env(safe-area-inset-bottom);
         }
 
-        * { 
-            box-sizing: border-box; 
-            -webkit-user-select: none; 
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; -webkit-user-select: none; touch-action: manipulation; }
         
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-            margin: 0; 
-            padding: 0;
-            background-color: #1a1a1a; 
-            color: white; 
-            /* 使用 svh 確保在 Safari 工具列出現時不會被推擠 */
-            height: 100svh; 
-            width: 100vw;
-            overflow: hidden;
+            font-family: -apple-system, sans-serif; margin: 0; padding: 0;
+            background-color: #1a1a1a; color: white; height: 100svh; width: 100vw; overflow: hidden;
         }
 
-        /* --- 橫向模式 (收銀) --- */
+        /* 橫向布局：商品 / 明細 / 找零 */
         .main-layout {
-            display: none; /* 預設隱藏，由 JS 判斷開啟 */
-            grid-template-columns: 1fr 1fr 1.2fr; 
-            gap: 10px; 
-            height: 100%;
-            padding: 8px var(--safe-right) var(--safe-bottom) var(--safe-left);
+            display: none;
+            grid-template-columns: 0.8fr 1fr 1.6fr; 
+            gap: 10px; height: 100%;
+            padding: 10px var(--safe-right) var(--safe-bottom) var(--safe-left);
         }
         
-        /* --- 直向模式 (報表) --- */
+        /* 直向布局：報表頁面 */
         #report-panel { 
-            display: none; 
-            flex-direction: column;
-            padding: 40px 25px var(--safe-bottom); 
-            height: 100%; 
-            overflow-y: auto; 
-            background: #000; 
+            display: none; flex-direction: column; padding: 20px 25px; 
+            height: 100%; overflow-y: auto; background: #000; 
         }
 
-        /* 報表 UI */
-        .report-header { font-size: 1.8rem; font-weight: bold; color: #2ecc71; margin-bottom: 20px; }
-        .stat-card { background: #2d2d2d; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
-        .log-item { padding: 12px 0; border-bottom: 1px solid #333; }
-        .log-detail { font-size: 0.85rem; color: #888; margin-top: 4px; }
+        .panel { background: #2d2d2d; padding: 12px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+        
+        /* 商品按鈕樣式 */
+        .btn-item { flex: 1; font-size: 1.2rem; background: #2980b9; border: 3px solid transparent; border-radius: 15px; color: white; font-weight: bold; position: relative; transition: all 0.2s; }
+        .selected { border-color: #fff !important; background: #3498db !important; box-shadow: 0 0 15px rgba(52, 152, 219, 0.6); }
+        
+        /* 完售樣式修正：移除 pointer-events 防止卡死 */
+        .btn-item.sold-out { background: #444 !important; color: #666 !important; opacity: 0.7; }
+        .btn-item.sold-out::after { 
+            content: "完售"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            color: #e74c3c; font-size: 1.5rem; border: 2px solid #e74c3c; padding: 2px 10px; border-radius: 5px; background: rgba(0,0,0,0.6); 
+        }
+        
+        /* 明細區 */
+        .order-list { flex: 1; background: #000; border-radius: 10px; padding: 10px; overflow-y: auto; border: 1px solid #444; }
+        .order-item { display: flex; justify-content: space-between; padding: 12px 5px; border-bottom: 1px solid #333; color: #f1c40f; font-size: 1.1rem; }
+        
+        .qty-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; height: 45%; }
+        .btn-qty { font-size: 1.4rem; background: #6c5ce7; border: none; border-radius: 12px; color: white; font-weight: bold; }
+        
+        /* 右側核心結帳區 */
+        .display-box { background: #000; padding: 8px 15px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; border: 1px solid #444; min-height: 110px; }
+        #total-txt { font-size: 1.4rem; color: #2ecc71; margin: 0; font-weight: bold; }
+        #paid-txt { font-size: 1.1rem; color: #81ecec; margin: 2px 0; font-weight: bold; } /* 實收加強色 */
+        
+        .change-row { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid #333; padding-top: 5px; color: #f1c40f; }
+        #change-txt { font-size: 3.5rem; font-weight: 900; line-height: 1; margin: 0; }
 
-        /* 收銀 UI 元件 */
-        .panel { background: #2d2d2d; padding: 10px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
-        .order-list { flex: 1; background: #000; border-radius: 10px; padding: 12px; overflow-y: auto; font-size: 1.2rem; color: #f1c40f; border: 1px solid #444; }
-        .order-item { display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #333; margin-bottom: 8px; }
+        .cash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex: 1.8; }
+        .btn-cash { font-size: 1.6rem; background: #27ae60; border: none; border-radius: 15px; color: white; font-weight: bold; }
+        .btn-clear { background: #4b4b4b; color: #bbb; font-size: 1.2rem; }
         
-        .qty-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; height: 35%; }
-        .btn-qty { font-size: 1.4rem; background: #6c5ce7; border: none; border-radius: 10px; color: white; font-weight: bold; }
-        
-        .display-box { background: #000; padding: 12px; border-radius: 12px; transition: background 0.3s; }
-        .flash-success { background: #1b4d31 !important; }
-        #total-txt { font-size: 1.6rem; color: #2ecc71; margin: 0; font-weight: bold; }
-        #change-txt { font-size: 2.2rem; color: #f1c40f; margin: 0; border-top: 1px solid #333; padding-top: 5px; font-weight: 900; }
-        
-        .btn-item { flex: 1; font-size: 1.3rem; background: #2980b9; border: 3px solid transparent; border-radius: 12px; color: white; font-weight: bold; }
-        .selected { border-color: #fff !important; background: #3498db !important; }
-        
-        .cash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; }
-        .btn-cash { font-size: 1.2rem; background: #27ae60; border: none; border-radius: 10px; color: white; font-weight: bold; }
-        .btn-reset { height: 75px; background: #e74c3c; font-size: 1.7rem; margin-top: auto; border: none; border-radius: 15px; color: white; font-weight: bold; }
-        
-        button:active { opacity: 0.7; transform: scale(0.95); }
+        .btn-reset { height: 65px; background: #e74c3c; font-size: 1.8rem; border: none; border-radius: 18px; color: white; font-weight: bold; box-shadow: 0 4px 0 #b03a2e; }
 
-        .clear-btn { background: #c0392b; color: white; border: none; padding: 15px; border-radius: 12px; margin-top: 20px; font-weight: bold; }
+        /* 動畫反饋 */
+        @keyframes successFlash { 0% { background-color: #2ecc71; } 100% { background-color: #000; } }
+        .success-anim { animation: successFlash 0.5s ease-out; }
+
+        button:active:not(.btn-reset) { opacity: 0.7; transform: scale(0.95); }
     </style>
 </head>
 <body>
 
 <div id="cash-layout" class="main-layout">
     <div class="panel">
-        <button class="btn-item" onclick="selProd('雞蛋糕大', 100, this)">雞蛋糕-大<br>$100</button>
-        <button class="btn-item" onclick="selProd('雞蛋糕小', 50, this)">雞蛋糕-小<br>$50</button>
-        <button class="btn-item" onclick="selProd('玉米', 40, this)">玉米<br>$40</button>
+        <div style="display:flex; flex-direction:column; gap:8px; flex:1">
+            <button class="btn-item" id="item-雞蛋糕大" onpointerdown="startLongPress(event, '雞蛋糕大')" onpointerup="cancelLongPress()" onclick="selProd('雞蛋糕大', 100, this)">雞蛋糕-大 $100</button>
+            <button class="btn-item" id="item-雞蛋糕小" onpointerdown="startLongPress(event, '雞蛋糕小')" onpointerup="cancelLongPress()" onclick="selProd('雞蛋糕小', 50, this)">雞蛋糕-小 $50</button>
+            <button class="btn-item" id="item-玉米" onpointerdown="startLongPress(event, '玉米')" onpointerup="cancelLongPress()" onclick="selProd('玉米', 40, this)">玉米 $40</button>
+        </div>
     </div>
 
     <div class="panel">
@@ -103,10 +98,11 @@
     </div>
 
     <div class="panel">
-        <div id="display-area" class="display-box">
-            <p id="total-txt">應收: $0</p>
-            <p id="paid-txt" style="margin:5px 0; color:#3498db;">實收: $0</p>
-            <p id="change-txt">找零: --</p>
+        <div class="display-box" id="main-display">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div><p id="total-txt">應收: $0</p><p id="paid-txt">實收: $0</p></div>
+            </div>
+            <div class="change-row"><span style="font-size:1.4rem; font-weight:bold;">找零:</span><p id="change-txt">--</p></div>
         </div>
         <div class="cash-grid">
             <button class="btn-cash" onclick="addPaid(1000)">1000</button>
@@ -114,53 +110,50 @@
             <button class="btn-cash" onclick="addPaid(100)">100</button>
             <button class="btn-cash" onclick="addPaid(50)">50</button>
             <button class="btn-cash" onclick="addPaid(10)">10</button>
-            <button class="btn-cash" style="background:#7f8c8d" onclick="clearPaid()">清實收</button>
+            <button class="btn-cash btn-clear" onclick="clearPaid()">清實收</button>
         </div>
         <button class="btn-reset" onclick="resetAll()">完成結帳</button>
     </div>
 </div>
 
 <div id="report-panel">
-    <div class="report-header">今日營業數據</div>
-    <div class="stat-card">
-        <div id="stat-total" style="font-size: 1.8rem; color: #f1c40f; font-weight: bold;">總營收: $0</div>
-        <div id="stat-count" style="margin-top: 8px; color: #aaa;">總單數: 0 筆</div>
-    </div>
-    <div id="log-container" style="flex: 1; overflow-y: auto;"></div>
-    <button class="clear-btn" onclick="clearHistory()">清空所有數據</button>
+    <h2 style="color:#2ecc71">今日營業數據</h2>
+    <div id="stat-display" style="background:#2d2d2d; padding:15px; border-radius:12px; margin-bottom:15px; font-size:1.2rem;"></div>
+    <div id="log-container"></div>
+    <button onclick="clearHistory()" style="background:#c0392b; color:white; border:none; padding:15px; border-radius:12px; margin-top:20px; width:100%">清空當日數據</button>
 </div>
 
 <script>
     let total = 0, paid = 0, selectedPrice = 0, selectedItemName = "", basket = {}; 
     const prices = {"雞蛋糕大": 100, "雞蛋糕小": 50, "玉米": 40};
+    let longPressTimer;
 
-    // 關鍵：偵測螢幕方向與高度，解決 Safari 工具列佔位問題
+    // 旋轉偵測
     function checkOrientation() {
         const isLandscape = window.innerWidth > window.innerHeight;
-        const cashLayout = document.getElementById('cash-layout');
-        const reportPanel = document.getElementById('report-panel');
-
-        if (isLandscape) {
-            cashLayout.style.display = 'grid';
-            reportPanel.style.display = 'none';
-            // 橫向時自動隱藏工具列的技巧：捲動 1 像素
-            window.scrollTo(0, 1);
-        } else {
-            cashLayout.style.display = 'none';
-            reportPanel.style.display = 'flex';
-        }
+        document.getElementById('cash-layout').style.display = isLandscape ? 'grid' : 'none';
+        document.getElementById('report-panel').style.display = isLandscape ? 'none' : 'flex';
     }
-
     window.addEventListener('resize', checkOrientation);
-    window.addEventListener('load', () => {
-        checkOrientation();
-        updateReport();
-        update();
-    });
+    window.addEventListener('load', () => { checkOrientation(); updateReport(); update(); });
+
+    // 商品長按 (完售開關)
+    function startLongPress(e, name) {
+        longPressTimer = setTimeout(() => {
+            const btn = document.getElementById(`item-${name}`);
+            const isSoldOut = btn.classList.toggle('sold-out');
+            if (isSoldOut) {
+                btn.classList.remove('selected');
+                if (selectedItemName === name) { selectedItemName = ""; selectedPrice = 0; }
+            }
+            if (navigator.vibrate) navigator.vibrate(60); 
+        }, 1000);
+    }
+    function cancelLongPress() { clearTimeout(longPressTimer); }
 
     function selProd(name, price, el) {
-        selectedPrice = price;
-        selectedItemName = name;
+        if (el.classList.contains('sold-out')) return; // 完售阻斷點擊
+        selectedPrice = price; selectedItemName = name;
         document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
         el.classList.add('selected');
     }
@@ -175,6 +168,27 @@
         update();
     }
 
+    // 明細點擊減1 & 長按刪除整項
+    let itemPressTimer;
+    function startItemPress(name) {
+        itemPressTimer = setTimeout(() => {
+            total -= (prices[name] * basket[name]);
+            delete basket[name];
+            if (navigator.vibrate) navigator.vibrate(100);
+            update();
+        }, 800);
+    }
+    function cancelItemPress() { clearTimeout(itemPressTimer); }
+
+    function removeOne(name) {
+        if (basket[name] > 0) {
+            basket[name] -= 1;
+            total -= prices[name];
+            if (basket[name] === 0) delete basket[name];
+            update();
+        }
+    }
+
     function addPaid(amount) { paid += amount; update(); }
     function clearPaid() { paid = 0; update(); }
 
@@ -182,16 +196,16 @@
         document.getElementById('total-txt').innerText = `應收: $${total}`;
         document.getElementById('paid-txt').innerText = `實收: $${paid}`;
         const changeDiv = document.getElementById('change-txt');
-        
-        if (paid === 0) { changeDiv.innerText = "找零: --"; changeDiv.style.color = "#f1c40f"; }
-        else if (paid < total) { changeDiv.innerText = `還差: $${total - paid}`; changeDiv.style.color = "#e74c3c"; }
-        else { changeDiv.innerText = `找零: $${paid - total}`; changeDiv.style.color = "#2ecc71"; }
+        changeDiv.innerText = paid === 0 ? "--" : (paid < total ? `${total - paid}` : `${paid - total}`);
 
         const listDiv = document.getElementById('order-list');
-        listDiv.innerHTML = "";
+        listDiv.innerHTML = basket && Object.keys(basket).length > 0 ? "" : "<p style='color:#555;text-align:center;margin-top:20px'>等待點餐...</p>";
         for (let name in basket) {
             const itemDiv = document.createElement('div');
             itemDiv.className = "order-item";
+            itemDiv.onpointerdown = () => startItemPress(name);
+            itemDiv.onpointerup = () => cancelItemPress();
+            itemDiv.onclick = () => removeOne(name);
             itemDiv.innerHTML = `<div>${name}</div><span>x ${basket[name]}</span>`;
             listDiv.appendChild(itemDiv);
         }
@@ -199,54 +213,44 @@
 
     function resetAll() {
         if (total === 0) return;
-        const area = document.getElementById('display-area');
-        area.classList.add('flash-success');
-        setTimeout(() => area.classList.remove('flash-success'), 400);
-
-        let sales = parseFloat(localStorage.getItem('total_sales') || 0);
-        let counts = parseInt(localStorage.getItem('order_counts') || 0);
         let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
-
         const now = new Date();
         const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
         let detailStr = Object.entries(basket).map(([n, q]) => `${n}x${q}`).join(', ');
-
-        logs.unshift({ time: timeStr, amount: total, detail: detailStr });
-        localStorage.setItem('total_sales', sales + total);
-        localStorage.setItem('order_counts', counts + 1);
-        localStorage.setItem('sales_logs', JSON.stringify(logs.slice(0, 100)));
+        
+        logs.unshift({ id: Date.now(), time: timeStr, amount: total, detail: detailStr });
+        localStorage.setItem('sales_logs', JSON.stringify(logs.slice(0, 200)));
+        
+        const display = document.getElementById('main-display');
+        display.classList.add('success-anim');
+        setTimeout(() => display.classList.remove('success-anim'), 500);
 
         total = 0; paid = 0; basket = {};
-        updateReport();
-        update();
+        updateReport(); update();
     }
 
     function updateReport() {
-        let sales = localStorage.getItem('total_sales') || 0;
-        let counts = localStorage.getItem('order_counts') || 0;
         let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
-
-        document.getElementById('stat-total').innerText = `總營收: $${sales}`;
-        document.getElementById('stat-count').innerText = `總單數: ${counts} 筆`;
-
-        const logContainer = document.getElementById('log-container');
-        logContainer.innerHTML = logs.map(log => `
-            <div class="log-item">
-                <div style="display:flex; justify-content:space-between;">
-                    <span style="color:#2ecc71;">[${log.time}] 成交</span>
-                    <span style="font-weight:bold;">$${log.amount}</span>
-                </div>
-                <div class="log-detail">${log.detail}</div>
+        let sum = logs.reduce((a, b) => a + b.amount, 0);
+        document.getElementById('stat-display').innerHTML = `總營收: <b style="color:#f1c40f">$${sum}</b> | 單數: <b>${logs.length}</b> 筆`;
+        document.getElementById('log-container').innerHTML = logs.map(l => `
+            <div onclick="voidItem(${l.id}, ${l.amount})" style="border-bottom:1px solid #333; padding:12px 0">
+                <span style="color:#2ecc71;font-weight:bold;">[${l.time}] $${l.amount}</span> <small style="color:#666"></small><br>
+                <small style="color:#aaa">${l.detail}</small>
             </div>
         `).join('');
     }
 
-    function clearHistory() {
-        if (confirm("確定要清空今天的所有營業數據嗎？")) {
-            localStorage.clear();
+    function voidItem(id, amt) {
+        if (confirm(`確定要作廢這筆 $${amt} 的訂單嗎？`)) {
+            let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
+            logs = logs.filter(l => l.id !== id);
+            localStorage.setItem('sales_logs', JSON.stringify(logs));
             updateReport();
         }
     }
+
+    function clearHistory() { if (confirm("警告：這將徹底清空今日所有營收數據！")) { localStorage.clear(); updateReport(); } }
 </script>
 </body>
 </html>
