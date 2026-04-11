@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
-    <title>小攤位收銀 Pro - 防縮放版</title>
+    <title>小攤位收銀 Pro - 穩定版</title>
     <style>
         :root {
             --safe-left: env(safe-area-inset-left);
@@ -12,23 +12,30 @@
             --safe-bottom: env(safe-area-inset-bottom);
         }
 
-        * { 
-            box-sizing: border-box; 
-            -webkit-user-select: none; 
-            -webkit-touch-callout: none; 
+        * {
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
             user-select: none;
-            /* 2. CSS 層級禁用雙擊縮放手勢 */
+            /* 關鍵：禁用所有瀏覽器預設手勢，防止縮放 */
             touch-action: manipulation; 
         }
         
-        body { 
-            font-family: -apple-system, sans-serif; margin: 0; padding: 0;
-            background-color: #1a1a1a; color: white; height: 100svh; width: 100vw; overflow: hidden;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            margin: 0; padding: 0;
+            background-color: #1a1a1a; color: white; 
+            height: 100svh; width: 100vw; overflow: hidden;
+        }
+
+        /* 按鈕強化：針對頻繁點擊區域完全停用手勢處理 */
+        button {
+            touch-action: none;
         }
 
         .main-layout {
             display: none;
-            grid-template-columns: 0.8fr 1fr 1.6fr; 
+            grid-template-columns: 0.8fr 1fr 1.6fr;
             gap: 8px; height: 100%;
             padding: 8px var(--safe-right) var(--safe-bottom) var(--safe-left);
         }
@@ -37,22 +44,24 @@
         .panel { background: #2d2d2d; padding: 10px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
         .panel-middle { display: grid; grid-template-rows: 1.2fr 1fr; gap: 8px; }
 
-        .btn-item { 
-            flex: 1; font-size: 1.2rem; border: 3px solid transparent; 
-            border-radius: 12px; color: white; font-weight: bold; 
-            position: relative; transition: all 0.2s; 
+        /* 商品按鈕樣式 */
+        .btn-item {
+            flex: 1; font-size: 1.2rem; border: 3px solid transparent;
+            border-radius: 12px; color: white; font-weight: bold;
+            position: relative; transition: all 0.2s;
             display: flex; align-items: center; justify-content: center;
         }
         #btn-雞蛋糕大, #btn-雞蛋糕小 { background: #a67c52; }
         #btn-玉米 { background: #f1c40f; color: #2d3436; }
         .selected { border-color: #fff !important; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
 
-        .btn-item.sold-out::after { 
-            content: "完售"; position: absolute; top: 50%; left: 50%; 
-            transform: translate(-50%, -50%) rotate(-15deg); 
-            display: inline-block; white-space: nowrap; 
-            font-size: 1.8rem; color: #e74c3c; background: transparent; 
-            padding: 4px 12px; border-radius: 8px; border: 4px solid #e74c3c; 
+        /* 完售印章 */
+        .btn-item.sold-out::after {
+            content: "完售"; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            display: inline-block; white-space: nowrap;
+            font-size: 1.8rem; color: #e74c3c; background: transparent;
+            padding: 4px 12px; border-radius: 8px; border: 4px solid #e74c3c;
             font-family: serif; font-weight: 900; letter-spacing: 2px; z-index: 10;
         }
         .btn-item.sold-out::before {
@@ -60,9 +69,10 @@
             background: rgba(0,0,0,0.6); border-radius: 12px; z-index: 5;
         }
 
+        /* 玉米快速選單 */
         #corn-menu {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 100; flex-direction: column; 
+            background: rgba(0,0,0,0.85); z-index: 100; flex-direction: column;
             justify-content: center; align-items: center; gap: 15px;
         }
         .corn-menu-content {
@@ -74,16 +84,20 @@
         .order-list { background: #000; border-radius: 10px; padding: 4px; overflow-y: auto; border: 1px solid #444; height: 100%; }
         .order-item { display: flex; justify-content: space-between; padding: 12px 10px; border-bottom: 1px solid #333; color: #f1c40f; font-size: 1.1rem; }
 
-        .qty-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); grid-auto-flow: column; gap: 6px; } 
+        .qty-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); grid-auto-flow: column; gap: 6px; }
         .btn-qty { font-size: 1.5rem; background: #6c5ce7; border: none; border-radius: 12px; color: white; font-weight: bold; }
+        
         .display-box { background: #000; padding: 5px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: flex-end; border: 1px solid #444; min-height: 60px; }
         #total-txt { font-size: 1.2rem; color: #2ecc71; margin: 0; font-weight: bold; }
         #paid-txt { font-size: 1rem; color: #81ecec; margin: 0; font-weight: bold; }
         #change-txt { font-size: 3.5rem; font-weight: 900; color: #f1c40f; margin: 0; line-height: 0.9; }
-        .cash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; flex: 4; } 
+        
+        .cash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; flex: 4; }
         .btn-cash { font-size: 2.1rem; background: #27ae60; border: none; border-radius: 15px; color: white; font-weight: bold; }
         .btn-clear { background: #4b4b4b; color: #bbb; font-size: 1.3rem; }
+        
         .btn-reset { height: 95px; background: #e74c3c; font-size: 2.5rem; border: none; border-radius: 18px; color: white; font-weight: bold; box-shadow: 0 5px 0 #b03a2e; }
+        
         @keyframes successFlash { 0% { background-color: #2ecc71; } 100% { background-color: #000; } }
         .success-anim { animation: successFlash 0.5s ease-out; }
     </style>
@@ -150,22 +164,24 @@
 </div>
 
 <script>
-    // 核心修正：攔截雙擊手勢防止放大
+    // --- 防止雙擊縮放的終極補丁 ---
     let lastTouchEnd = 0;
-    document.addEventListener('touchend', e => {
+    document.addEventListener('touchend', (e) => {
         const now = Date.now();
         if (now - lastTouchEnd <= 300) {
-            e.preventDefault(); // 300ms 內的連續點擊視為雙擊，攔截其預設放大行為
+            e.preventDefault(); // 阻斷 300ms 內的連點縮放
         }
         lastTouchEnd = now;
     }, false);
 
-    // 防止多指縮放
-    document.addEventListener('touchstart', e => { 
+    // 禁用多指手勢縮放
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+    document.addEventListener('touchstart', (e) => { 
         if (e.touches.length > 1) e.preventDefault(); 
     }, { passive: false });
 
-    let total = 0, paid = 0, selectedItemName = "", basket = {}; 
+    // --- 收銀邏輯 ---
+    let total = 0, paid = 0, selectedItemName = "", basket = {};
     const prices = {"雞蛋糕大": 100, "雞蛋糕小": 50};
     let pressTimer, itemDeleteTimer;
 
@@ -278,7 +294,7 @@
             itemDiv.onpointerdown = (e) => startItemLongPress(e, name);
             itemDiv.onpointerup = () => endItemLongPress();
             itemDiv.onpointerleave = () => endItemLongPress();
-            itemDiv.onclick = () => removeOne(name); 
+            itemDiv.onclick = () => removeOne(name);
             itemDiv.innerHTML = `<div>${name}</div><span>x ${basket[name]}</span>`;
             listDiv.appendChild(itemDiv);
         }
@@ -288,7 +304,7 @@
         if (total === 0 || paid === 0) {
             total = 0; paid = 0; basket = {}; selectedItemName = "";
             document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
-            update(); return; 
+            update(); return;
         }
         let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
         const now = new Date();
