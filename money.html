@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
-    <title>小攤位收銀 Pro - 三品項固定版</title>
+    <title>小攤位收銀 Pro - 高按鈕版</title>
     <style>
         :root {
             --safe-left: env(safe-area-inset-left);
@@ -15,25 +15,27 @@
         * {
             box-sizing: border-box;
             -webkit-user-select: none;
-            -webkit-touch-callout: none;
+            -webkit-touch-callout: none; /* 停用 iOS 長按彈出視窗 */
             user-select: none;
             touch-action: manipulation; 
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            font-family: -apple-system, sans-serif; 
             margin: 0; padding: 0;
             background-color: #1a1a1a; color: white; 
             height: 100svh; width: 100vw; overflow: hidden;
         }
 
+        /* 核心按鈕防縮放設置 */
         button {
-            touch-action: none;
+            touch-action: none; /* 徹底停用所有瀏覽器手勢，防止放大 */
+            -webkit-tap-highlight-color: transparent;
         }
 
         .main-layout {
             display: none;
-            grid-template-columns: 0.8fr 1.1fr 1.6fr; /* 略微加寬中間寬度 */
+            grid-template-columns: 0.8fr 1.1fr 1.6fr;
             gap: 8px; height: 100%;
             padding: 8px var(--safe-right) var(--safe-bottom) var(--safe-left);
         }
@@ -41,80 +43,62 @@
         #report-panel { display: none; flex-direction: column; padding: 20px; height: 100%; overflow-y: auto; background: #000; }
         .panel { background: #2d2d2d; padding: 10px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
         
-        /* 中間面板分配：明細剛好佔據 3 個品項的高度 */
-        .panel-middle { display: grid; grid-template-rows: auto 1fr; gap: 8px; }
-
-        /* 商品按鈕樣式 */
-        .btn-item {
-            flex: 1; font-size: 1.2rem; border: 3px solid transparent;
-            border-radius: 12px; color: white; font-weight: bold;
-            position: relative; transition: all 0.2s;
-            display: flex; align-items: center; justify-content: center;
+        /* 重新分配中間面板：明細縮小，數量鍵拉高 */
+        .panel-middle { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
         }
+
+        /* 商品明細：極度緊湊版，剛好裝三個 */
+        .order-list { 
+            background: #000; border-radius: 10px; padding: 2px; 
+            overflow: hidden; border: 1px solid #444; 
+            height: 105px; /* 高度縮減，留空間給下方 */
+            flex-shrink: 0;
+        }
+        .order-item { 
+            display: flex; justify-content: space-between; 
+            height: 34px; align-items: center; padding: 0 10px;
+            border-bottom: 1px solid #333; color: #f1c40f; 
+            font-size: 0.85rem; /* 字體縮小 */
+        }
+
+        /* 數量按鈕：佔滿剩餘空間，變得更高 */
+        .qty-grid { 
+            display: grid; grid-template-columns: repeat(2, 1fr); 
+            grid-template-rows: repeat(3, 1fr); grid-auto-flow: column; 
+            gap: 6px; 
+            flex-grow: 1; /* 自動長高 */
+        }
+        .btn-qty { font-size: 1.6rem; background: #6c5ce7; border: none; border-radius: 12px; color: white; font-weight: bold; }
+
+        /* 商品與收銀按鈕維持樣式 */
+        .btn-item { flex: 1; font-size: 1.2rem; border: 3px solid transparent; border-radius: 12px; color: white; font-weight: bold; position: relative; }
         #btn-雞蛋糕大, #btn-雞蛋糕小 { background: #a67c52; }
         #btn-玉米 { background: #f1c40f; color: #2d3436; }
         .selected { border-color: #fff !important; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
 
-        /* 完售印章 */
         .btn-item.sold-out::after {
             content: "完售"; position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50) rotate(-15deg);
-            display: inline-block; white-space: nowrap;
-            font-size: 1.8rem; color: #e74c3c; background: transparent;
-            padding: 4px 12px; border-radius: 8px; border: 4px solid #e74c3c;
-            font-family: serif; font-weight: 900; letter-spacing: 2px; z-index: 10;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            font-size: 1.8rem; color: #e74c3c; border: 4px solid #e74c3c;
+            padding: 4px 12px; border-radius: 8px; font-weight: 900; z-index: 10;
         }
-        .btn-item.sold-out::before {
-            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); border-radius: 12px; z-index: 5;
-        }
+        .btn-item.sold-out::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); border-radius: 12px; z-index: 5; }
 
-        /* 玉米快速選單 */
-        #corn-menu {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 100; flex-direction: column;
-            justify-content: center; align-items: center; gap: 15px;
-        }
-        .corn-menu-content {
-            background: #333; padding: 25px; border-radius: 24px; border: 2px solid #f1c40f;
-            display: flex; flex-direction: column; gap: 12px; width: 300px;
-        }
-        .btn-corn-opt { padding: 18px; font-size: 1.4rem; border-radius: 12px; border: none; font-weight: bold; }
-
-        /* 商品明細：固定高度剛好放 3 個 */
-        .order-list { 
-            background: #000; border-radius: 10px; padding: 2px; 
-            overflow: hidden; 
-            border: 1px solid #444; 
-            height: 125px; /* 固定高度以容納 3 個品項 */
-        }
-        .order-item { 
-            display: flex; justify-content: space-between; 
-            height: 40px; /* 每個品項高度固定 */
-            align-items: center;
-            padding: 0 10px;
-            border-bottom: 1px solid #333; 
-            color: #f1c40f; 
-            font-size: 1.1rem; /* 稍微放大一點方便閱讀 */
-        }
-
-        /* 數量按鈕：維持原本大小 */
-        .qty-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); grid-auto-flow: column; gap: 6px; flex-grow: 1; }
-        .btn-qty { font-size: 1.5rem; background: #6c5ce7; border: none; border-radius: 12px; color: white; font-weight: bold; }
-        
         .display-box { background: #000; padding: 5px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: flex-end; border: 1px solid #444; min-height: 60px; }
         #total-txt { font-size: 1.2rem; color: #2ecc71; margin: 0; font-weight: bold; }
-        #paid-txt { font-size: 1rem; color: #81ecec; margin: 0; font-weight: bold; }
         #change-txt { font-size: 3.5rem; font-weight: 900; color: #f1c40f; margin: 0; line-height: 0.9; }
         
         .cash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; flex: 4; }
         .btn-cash { font-size: 2.1rem; background: #27ae60; border: none; border-radius: 15px; color: white; font-weight: bold; }
         .btn-clear { background: #4b4b4b; color: #bbb; font-size: 1.3rem; }
-        
         .btn-reset { height: 95px; background: #e74c3c; font-size: 2.5rem; border: none; border-radius: 18px; color: white; font-weight: bold; box-shadow: 0 5px 0 #b03a2e; }
-        
-        @keyframes successFlash { 0% { background-color: #2ecc71; } 100% { background-color: #000; } }
-        .success-anim { animation: successFlash 0.5s ease-out; }
+
+        #corn-menu { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; flex-direction: column; justify-content: center; align-items: center; }
+        .corn-menu-content { background: #333; padding: 25px; border-radius: 24px; border: 2px solid #f1c40f; display: flex; flex-direction: column; gap: 12px; width: 300px; }
+        .btn-corn-opt { padding: 18px; font-size: 1.4rem; border-radius: 12px; border: none; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -152,7 +136,7 @@
         <div class="display-box" id="main-display">
             <div style="display:flex; flex-direction:column; padding-bottom:5px;">
                 <p id="total-txt">應收: $0</p>
-                <p id="paid-txt">實收: $0</p>
+                <p id="paid-txt" style="font-size:1rem; color:#81ecec; margin:0; font-weight:bold;">實收: $0</p>
             </div>
             <div style="display:flex; align-items:flex-start; gap:4px;">
                 <span style="color:#f1c40f; font-weight:bold; margin-top:4px;">找零</span>
@@ -179,7 +163,7 @@
 </div>
 
 <script>
-    // --- 防止雙擊縮放補丁 ---
+    // --- 停用所有手機縮放與長按放大鏡功能 ---
     let lastTouchEnd = 0;
     document.addEventListener('touchend', (e) => {
         const now = Date.now();
@@ -187,10 +171,12 @@
         lastTouchEnd = now;
     }, false);
 
-    document.addEventListener('gesturestart', (e) => e.preventDefault());
-    document.addEventListener('touchstart', (e) => { 
-        if (e.touches.length > 1) e.preventDefault(); 
-    }, { passive: false });
+    // 禁用右鍵/長按彈出菜單（防止長按放大鏡）
+    window.oncontextmenu = function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+    };
 
     // --- 收銀邏輯 ---
     let total = 0, paid = 0, selectedItemName = "", basket = {};
@@ -207,8 +193,7 @@
 
     function startSoldOutLongPress(e, name) {
         pressTimer = setTimeout(() => {
-            const btn = document.getElementById(`btn-${name}`);
-            btn.classList.toggle('sold-out');
+            document.getElementById(`btn-${name}`).classList.toggle('sold-out');
             if (navigator.vibrate) navigator.vibrate(100);
         }, 500);
     }
@@ -225,8 +210,7 @@
             if (basket[name]) {
                 delete basket[name];
                 if (navigator.vibrate) navigator.vibrate(150);
-                calculateTotal();
-                update();
+                calculateTotal(); update();
             }
         }, 500);
     }
@@ -241,9 +225,7 @@
         selectedItemName = "玉米";
         document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
         document.getElementById('btn-玉米').classList.add('selected');
-        closeCornMenu();
-        calculateTotal();
-        update();
+        closeCornMenu(); calculateTotal(); update();
     }
 
     function selProd(name, price, el) {
@@ -253,15 +235,13 @@
         selectedItemName = name;
         document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
         el.classList.add('selected');
-        calculateTotal();
-        update();
+        calculateTotal(); update();
     }
 
     function addOrder(qty) {
         if (!selectedItemName) return;
         basket[selectedItemName] += (qty - 1);
-        calculateTotal();
-        update();
+        calculateTotal(); update();
     }
 
     function calculateTotal() {
@@ -269,14 +249,9 @@
         for (let name in basket) {
             let qty = basket[name];
             if (name === "玉米") {
-                let groupsOf3 = Math.floor(qty / 3);
-                let remains = qty % 3;
-                newTotal += (groupsOf3 * 110);
-                if (remains === 1) newTotal += 40;
-                else if (remains === 2) newTotal += 75;
-            } else {
-                newTotal += (prices[name] * qty);
-            }
+                let g3 = Math.floor(qty / 3); let r = qty % 3;
+                newTotal += (g3 * 110) + (r === 1 ? 40 : (r === 2 ? 75 : 0));
+            } else { newTotal += (prices[name] * qty); }
         }
         total = newTotal;
     }
@@ -285,8 +260,7 @@
         if (basket[name] > 0) {
             basket[name] -= 1;
             if (basket[name] === 0) delete basket[name];
-            calculateTotal();
-            update();
+            calculateTotal(); update();
         }
     }
 
@@ -296,14 +270,13 @@
     function update() {
         document.getElementById('total-txt').innerText = `應收: $${total}`;
         document.getElementById('paid-txt').innerText = `實收: $${paid}`;
-        const changeDiv = document.getElementById('change-txt');
-        changeDiv.innerText = paid === 0 ? "--" : (paid < total ? `${total - paid}` : `${paid - total}`);
+        const c = document.getElementById('change-txt');
+        c.innerText = paid === 0 ? "--" : (paid < total ? `${total - paid}` : `${paid - total}`);
         const listDiv = document.getElementById('order-list');
         listDiv.innerHTML = "";
-        
         let count = 0;
         for (let name in basket) {
-            if (count >= 3) break; // 嚴格限制只顯示三個
+            if (count >= 3) break;
             const itemDiv = document.createElement('div');
             itemDiv.className = "order-item";
             itemDiv.onpointerdown = (e) => startItemLongPress(e, name);
@@ -314,9 +287,7 @@
             listDiv.appendChild(itemDiv);
             count++;
         }
-        if (count === 0) {
-            listDiv.innerHTML = "<p style='color:#555;text-align:center;margin-top:50px;font-size:0.9rem;'>點餐中...</p>";
-        }
+        if (count === 0) listDiv.innerHTML = "<p style='color:#555;text-align:center;margin-top:35px;font-size:0.8rem;'>點餐中...</p>";
     }
 
     function resetAll() {
@@ -349,14 +320,14 @@
     }
 
     function voidItem(id, amt) {
-        if (confirm(`確定要作廢這筆 $${amt} 的訂單嗎？`)) {
+        if (confirm(`確定作廢 $${amt}？`)) {
             let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
             localStorage.setItem('sales_logs', JSON.stringify(logs.filter(l => l.id !== id)));
             updateReport();
         }
     }
 
-    function clearHistory() { if (confirm("警告：這將清空所有營收數據！")) { localStorage.clear(); updateReport(); } }
+    function clearHistory() { if (confirm("清空數據？")) { localStorage.clear(); updateReport(); } }
 </script>
 </body>
 </html>
