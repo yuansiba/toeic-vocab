@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
-    <title>小攤位收銀 Pro - 優惠邏輯修正版</title>
+    <title>小攤位收銀</title>
     <style>
         :root {
             --safe-left: env(safe-area-inset-left);
@@ -14,9 +14,11 @@
 
         * {
             box-sizing: border-box;
+            /* 1. 禁止選取文字與系統選單 */
             -webkit-user-select: none;
             -webkit-touch-callout: none;
             user-select: none;
+            /* 2. 核心：禁止雙擊縮放，僅允許點擊與捲動 */
             touch-action: manipulation; 
         }
         
@@ -25,9 +27,14 @@
             margin: 0; padding: 0;
             background-color: #1a1a1a; color: white; 
             height: 100svh; width: 100vw; overflow: hidden;
+            /* 3. 再次確保 body 不會被拉動縮放 */
+            position: fixed; 
         }
 
-        button { touch-action: none; -webkit-tap-highlight-color: transparent; }
+        button { 
+            /* 確保按鈕點擊反應迅速 */
+            -webkit-tap-highlight-color: transparent;
+        }
 
         .main-layout {
             display: none;
@@ -64,7 +71,6 @@
         #btn-玉米 { background: #f1c40f; color: #2d3436; }
         .selected { border-color: #fff !important; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
 
-        /* 完售印章：橫式平放 */
         .btn-item.sold-out::after {
             content: "完售"; position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
@@ -75,7 +81,8 @@
         }
         .btn-item.sold-out::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); border-radius: 12px; z-index: 5; }
 
-        .display-box { background: #000; padding: 5px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: flex-end; border: 1px solid #444; min-height: 60px; }
+        .display-box { background: #000; padding: 5px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: flex-end; border: 1px solid #444; min-height: 60px; transition: 0.3s; }
+        .success-anim { background: #27ae60 !important; }
         #total-txt { font-size: 1.2rem; color: #2ecc71; margin: 0; font-weight: bold; }
         #change-txt { font-size: 3.5rem; font-weight: 900; color: #f1c40f; margin: 0; line-height: 0.9; }
         
@@ -150,7 +157,23 @@
 </div>
 
 <script>
+    // 阻止系統選單與雙擊放大
     window.oncontextmenu = function(e) { e.preventDefault(); return false; };
+
+    // 4. 強制攔截多指縮放與 iOS 的雙擊
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(event) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault(); // 阻斷雙擊
+        }
+        lastTouchEnd = now;
+    }, false);
+
+    // 阻止兩指縮放
+    document.addEventListener('gesturestart', function(e) {
+        e.preventDefault();
+    });
 
     let total = 0, paid = 0, selectedKey = "", basket = {};
     const itemPrices = {"雞蛋糕大": 100, "雞蛋糕小": 50, "玉米": 40};
@@ -164,13 +187,11 @@
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('load', () => { checkOrientation(); updateReport(); update(); });
 
-    // --- 長按邏輯 ---
     function startPress(e, name) { pressTimer = setTimeout(() => { document.getElementById(`btn-${name}`).classList.toggle('sold-out'); if (navigator.vibrate) navigator.vibrate(100); }, 600); }
     function startCornPress(e) { pressTimer = setTimeout(() => { document.getElementById('corn-menu').style.display = 'flex'; if (navigator.vibrate) navigator.vibrate(100); }, 600); }
     function endPress() { clearTimeout(pressTimer); }
     function closeCornMenu() { document.getElementById('corn-menu').style.display = 'none'; }
 
-    // --- 點餐邏輯 ---
     function selProd(name, price, el) {
         if (el.classList.contains('sold-out')) return;
         if (!basket[name]) basket[name] = { qty: 0, price: price };
@@ -181,9 +202,8 @@
         calculateTotal(); update();
     }
 
-    // 長按選單進入的優惠玉米
     function addPromoCorn(label, price) {
-        basket[label] = { qty: 1, price: price }; // 優惠直接算一組
+        basket[label] = { qty: 1, price: price };
         selectedKey = label;
         document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
         document.getElementById('btn-玉米').classList.add('selected');
@@ -228,26 +248,42 @@
                 itemDiv.onclick = () => removeOne(k);
                 itemDiv.innerHTML = `<div>${k}</div><span>x ${basket[k].qty}</span>`;
             } else {
-                itemDiv.innerHTML = `<div></div><span></span>`; // 空列維持高度
+                itemDiv.innerHTML = `<div></div><span></span>`;
             }
             listDiv.appendChild(itemDiv);
         }
     }
 
     function resetAll() {
-        if (total === 0) return;
+        if (total === 0 || paid === 0) {
+            clearCurrentOrder();
+            return;
+        }
+
         let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
         const now = new Date();
         const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-        logs.unshift({ id: Date.now(), time: timeStr, amount: total, detail: Object.entries(basket).map(([n, obj]) => `${n}x${obj.qty}`).join(', ') });
+        
+        logs.unshift({ 
+            id: Date.now(), 
+            time: timeStr, 
+            amount: total, 
+            detail: Object.entries(basket).map(([n, obj]) => `${n}x${obj.qty}`).join(', ') 
+        });
+        
         localStorage.setItem('sales_logs', JSON.stringify(logs.slice(0, 300)));
         
         document.getElementById('main-display').classList.add('success-anim');
         setTimeout(() => document.getElementById('main-display').classList.remove('success-anim'), 500);
         
+        clearCurrentOrder();
+        updateReport();
+    }
+
+    function clearCurrentOrder() {
         total = 0; paid = 0; basket = {}; selectedKey = "";
         document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
-        updateReport(); update();
+        update();
     }
 
     function updateReport() {
