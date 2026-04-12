@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
-    <title>小攤位收銀 Pro - 視覺提醒版</title>
+    <title>小攤位收銀 Pro - 長按清除版</title>
     <style>
         :root {
             --safe-left: env(safe-area-inset-left);
@@ -50,8 +50,9 @@
             display: flex; justify-content: space-between; 
             height: 34px; align-items: center; padding: 0 10px;
             border-bottom: 1px solid #333; color: #f1c40f; 
-            font-size: 0.85rem;
+            font-size: 0.85rem; transition: background 0.2s;
         }
+        .order-item:active { background: #222; }
 
         .qty-grid { 
             display: grid; grid-template-columns: repeat(2, 1fr); 
@@ -163,7 +164,6 @@
     document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
 
     let total = 0, paid = 0, selectedKey = "", basket = {};
-    const itemPrices = {"雞蛋糕大": 100, "雞蛋糕小": 50, "玉米": 40};
     let pressTimer;
 
     function checkOrientation() {
@@ -174,10 +174,23 @@
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('load', () => { checkOrientation(); updateReport(); update(); });
 
+    // --- 按鈕長按邏輯 ---
     function startPress(e, name) { pressTimer = setTimeout(() => { document.getElementById(`btn-${name}`).classList.toggle('sold-out'); if (navigator.vibrate) navigator.vibrate(100); }, 600); }
     function startCornPress(e) { pressTimer = setTimeout(() => { document.getElementById('corn-menu').style.display = 'flex'; if (navigator.vibrate) navigator.vibrate(100); }, 600); }
     function endPress() { clearTimeout(pressTimer); }
     function closeCornMenu() { document.getElementById('corn-menu').style.display = 'none'; }
+
+    // --- 明細行長按邏輯 ---
+    let rowPressTimer;
+    function startRowPress(key) {
+        rowPressTimer = setTimeout(() => {
+            delete basket[key];
+            if(selectedKey === key) selectedKey = "";
+            if (navigator.vibrate) navigator.vibrate(80);
+            calculateTotal(); update();
+        }, 600);
+    }
+    function endRowPress() { clearTimeout(rowPressTimer); }
 
     function selProd(name, price, el) {
         if (el.classList.contains('sold-out')) return;
@@ -210,6 +223,7 @@
     }
 
     function removeOne(key) {
+        if (!basket[key]) return;
         if (basket[key].qty > 1) { basket[key].qty -= 1; } 
         else { delete basket[key]; if(selectedKey === key) selectedKey = ""; }
         calculateTotal(); update();
@@ -226,22 +240,14 @@
         const changeLabel = document.getElementById('change-label');
 
         if (paid === 0) {
-            changeTxt.innerText = "--";
-            changeTxt.style.color = "#f1c40f"; // 預設黃色
-            changeLabel.innerText = "找零";
-            changeLabel.style.color = "#f1c40f";
+            changeTxt.innerText = "--"; changeTxt.style.color = "#f1c40f";
+            changeLabel.innerText = "找零"; changeLabel.style.color = "#f1c40f";
         } else if (paid < total) {
-            // --- 實收小於應收：顯示紅色 ---
-            changeTxt.innerText = `${total - paid}`;
-            changeTxt.style.color = "#ff4757"; // 錯誤紅色
-            changeLabel.innerText = "還差";
-            changeLabel.style.color = "#ff4757";
+            changeTxt.innerText = `${total - paid}`; changeTxt.style.color = "#ff4757";
+            changeLabel.innerText = "還差"; changeLabel.style.color = "#ff4757";
         } else {
-            // --- 正常找零：顯示黃色 ---
-            changeTxt.innerText = `${paid - total}`;
-            changeTxt.style.color = "#f1c40f"; // 正常黃色
-            changeLabel.innerText = "找零";
-            changeLabel.style.color = "#f1c40f";
+            changeTxt.innerText = `${paid - total}`; changeTxt.style.color = "#f1c40f";
+            changeLabel.innerText = "找零"; changeLabel.style.color = "#f1c40f";
         }
         
         const listDiv = document.getElementById('order-list');
@@ -252,7 +258,11 @@
             itemDiv.className = "order-item";
             if (keys[i]) {
                 let k = keys[i];
+                // 註冊點擊(扣一)與長按(全刪)
+                itemDiv.onpointerdown = () => startRowPress(k);
+                itemDiv.onpointerup = () => endRowPress();
                 itemDiv.onclick = () => removeOne(k);
+                
                 itemDiv.innerHTML = `<div>${k}</div><span>x ${basket[k].qty}</span>`;
             } else {
                 itemDiv.innerHTML = `<div></div><span></span>`;
@@ -262,29 +272,15 @@
     }
 
     function resetAll() {
-        if (total === 0 || paid === 0) {
-            clearCurrentOrder();
-            return;
-        }
-
+        if (total === 0 || paid === 0) { clearCurrentOrder(); return; }
         let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
         const now = new Date();
         const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-        
-        logs.unshift({ 
-            id: Date.now(), 
-            time: timeStr, 
-            amount: total, 
-            detail: Object.entries(basket).map(([n, obj]) => `${n}x${obj.qty}`).join(', ') 
-        });
-        
+        logs.unshift({ id: Date.now(), time: timeStr, amount: total, detail: Object.entries(basket).map(([n, obj]) => `${n}x${obj.qty}`).join(', ') });
         localStorage.setItem('sales_logs', JSON.stringify(logs.slice(0, 300)));
-        
         document.getElementById('main-display').classList.add('success-anim');
         setTimeout(() => document.getElementById('main-display').classList.remove('success-anim'), 500);
-        
-        clearCurrentOrder();
-        updateReport();
+        clearCurrentOrder(); updateReport();
     }
 
     function clearCurrentOrder() {
@@ -311,7 +307,6 @@
             updateReport();
         }
     }
-
     function clearHistory() { if (confirm("清空數據？")) { localStorage.clear(); updateReport(); } }
 </script>
 </body>
