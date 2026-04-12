@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1a1a1a">
-    <title>小攤位收銀</title>
+    <title>小攤位收銀 Pro - 視覺提醒版</title>
     <style>
         :root {
             --safe-left: env(safe-area-inset-left);
@@ -14,11 +14,9 @@
 
         * {
             box-sizing: border-box;
-            /* 1. 禁止選取文字與系統選單 */
             -webkit-user-select: none;
             -webkit-touch-callout: none;
             user-select: none;
-            /* 2. 核心：禁止雙擊縮放，僅允許點擊與捲動 */
             touch-action: manipulation; 
         }
         
@@ -27,14 +25,10 @@
             margin: 0; padding: 0;
             background-color: #1a1a1a; color: white; 
             height: 100svh; width: 100vw; overflow: hidden;
-            /* 3. 再次確保 body 不會被拉動縮放 */
             position: fixed; 
         }
 
-        button { 
-            /* 確保按鈕點擊反應迅速 */
-            -webkit-tap-highlight-color: transparent;
-        }
+        button { -webkit-tap-highlight-color: transparent; }
 
         .main-layout {
             display: none;
@@ -133,7 +127,7 @@
                 <p id="paid-txt" style="font-size:1rem; color:#81ecec; margin:0; font-weight:bold;">實收: $0</p>
             </div>
             <div style="display:flex; align-items:flex-start; gap:4px;">
-                <span style="color:#f1c40f; font-weight:bold; margin-top:4px;">找零</span>
+                <span id="change-label" style="color:#f1c40f; font-weight:bold; margin-top:4px;">找零</span>
                 <p id="change-txt">--</p>
             </div>
         </div>
@@ -157,23 +151,16 @@
 </div>
 
 <script>
-    // 阻止系統選單與雙擊放大
     window.oncontextmenu = function(e) { e.preventDefault(); return false; };
 
-    // 4. 強制攔截多指縮放與 iOS 的雙擊
     let lastTouchEnd = 0;
     document.addEventListener('touchend', function(event) {
         const now = Date.now();
-        if (now - lastTouchEnd <= 300) {
-            event.preventDefault(); // 阻斷雙擊
-        }
+        if (now - lastTouchEnd <= 300) event.preventDefault();
         lastTouchEnd = now;
     }, false);
 
-    // 阻止兩指縮放
-    document.addEventListener('gesturestart', function(e) {
-        e.preventDefault();
-    });
+    document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
 
     let total = 0, paid = 0, selectedKey = "", basket = {};
     const itemPrices = {"雞蛋糕大": 100, "雞蛋糕小": 50, "玉米": 40};
@@ -234,8 +221,28 @@
     function update() {
         document.getElementById('total-txt').innerText = `應收: $${total}`;
         document.getElementById('paid-txt').innerText = `實收: $${paid}`;
-        const c = document.getElementById('change-txt');
-        c.innerText = paid === 0 ? "--" : (paid < total ? `${total - paid}` : `${paid - total}`);
+        
+        const changeTxt = document.getElementById('change-txt');
+        const changeLabel = document.getElementById('change-label');
+
+        if (paid === 0) {
+            changeTxt.innerText = "--";
+            changeTxt.style.color = "#f1c40f"; // 預設黃色
+            changeLabel.innerText = "找零";
+            changeLabel.style.color = "#f1c40f";
+        } else if (paid < total) {
+            // --- 實收小於應收：顯示紅色 ---
+            changeTxt.innerText = `${total - paid}`;
+            changeTxt.style.color = "#ff4757"; // 錯誤紅色
+            changeLabel.innerText = "還差";
+            changeLabel.style.color = "#ff4757";
+        } else {
+            // --- 正常找零：顯示黃色 ---
+            changeTxt.innerText = `${paid - total}`;
+            changeTxt.style.color = "#f1c40f"; // 正常黃色
+            changeLabel.innerText = "找零";
+            changeLabel.style.color = "#f1c40f";
+        }
         
         const listDiv = document.getElementById('order-list');
         listDiv.innerHTML = "";
