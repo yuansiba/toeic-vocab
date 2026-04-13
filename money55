@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>小攤位收銀 Pro - 長按清除版</title>
+    <style>
+        :root {
+            --safe-left: env(safe-area-inset-left);
+            --safe-right: env(safe-area-inset-right);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            user-select: none;
+            touch-action: manipulation; 
+        }
+        
+        body {
+            font-family: -apple-system, sans-serif; 
+            margin: 0; padding: 0;
+            background-color: #1a1a1a; color: white; 
+            height: 100svh; width: 100vw; overflow: hidden;
+            position: fixed; 
+        }
+
+        button { -webkit-tap-highlight-color: transparent; }
+
+        .main-layout {
+            display: none;
+            grid-template-columns: 0.8fr 1.1fr 1.6fr;
+            gap: 8px; height: 100%;
+            padding: 8px var(--safe-right) var(--safe-bottom) var(--safe-left);
+        }
+        
+        #report-panel { display: none; flex-direction: column; padding: 20px; height: 100%; overflow-y: auto; background: #000; }
+        .panel { background: #2d2d2d; padding: 10px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+        .panel-middle { display: flex; flex-direction: column; gap: 8px; }
+
+        .order-list { 
+            background: #000; border-radius: 10px; padding: 2px; 
+            overflow: hidden; border: 1px solid #444; 
+            height: 105px; flex-shrink: 0;
+        }
+        .order-item { 
+            display: flex; justify-content: space-between; 
+            height: 34px; align-items: center; padding: 0 10px;
+            border-bottom: 1px solid #333; color: #f1c40f; 
+            font-size: 0.85rem; transition: background 0.2s;
+        }
+        .order-item:active { background: #222; }
+
+        .qty-grid { 
+            display: grid; grid-template-columns: repeat(2, 1fr); 
+            grid-template-rows: repeat(3, 1fr); grid-auto-flow: column; 
+            gap: 6px; flex-grow: 1;
+        }
+        .btn-qty { font-size: 1.6rem; background: #6c5ce7; border: none; border-radius: 12px; color: white; font-weight: bold; }
+
+        .btn-item { flex: 1; font-size: 1.2rem; border: 3px solid transparent; border-radius: 12px; color: white; font-weight: bold; position: relative; overflow: hidden; }
+        #btn-雞蛋糕大, #btn-雞蛋糕小 { background: #a67c52; }
+        #btn-玉米 { background: #f1c40f; color: #2d3436; }
+        .selected { border-color: #fff !important; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
+
+        .btn-item.sold-out::after {
+            content: "完售"; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.1rem; color: #e74c3c; border: 4px solid #e74c3c;
+            padding: 3px 10px; border-radius: 8px; font-weight: 900; 
+            z-index: 10; white-space: nowrap; max-width: 90%;
+            letter-spacing: 2px; pointer-events: none;
+        }
+        .btn-item.sold-out::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); border-radius: 12px; z-index: 5; }
+
+        .display-box { background: #000; padding: 5px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: flex-end; border: 1px solid #444; min-height: 60px; transition: 0.3s; }
+        .success-anim { background: #27ae60 !important; }
+        #total-txt { font-size: 1.2rem; color: #2ecc71; margin: 0; font-weight: bold; }
+        #change-txt { font-size: 3.5rem; font-weight: 900; color: #f1c40f; margin: 0; line-height: 0.9; }
+        
+        .cash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; flex: 4; }
+        .btn-cash { font-size: 2.1rem; background: #27ae60; border: none; border-radius: 15px; color: white; font-weight: bold; }
+        .btn-clear { background: #4b4b4b; color: #bbb; font-size: 1.3rem; }
+        .btn-reset { height: 95px; background: #e74c3c; font-size: 2.5rem; border: none; border-radius: 18px; color: white; font-weight: bold; box-shadow: 0 5px 0 #b03a2e; }
+
+        #corn-menu { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; flex-direction: column; justify-content: center; align-items: center; }
+        .corn-menu-content { background: #333; padding: 25px; border-radius: 24px; border: 2px solid #f1c40f; display: flex; flex-direction: column; gap: 12px; width: 300px; }
+        .btn-corn-opt { padding: 18px; font-size: 1.4rem; border-radius: 12px; border: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="corn-menu" onclick="closeCornMenu()">
+    <div class="corn-menu-content" onclick="event.stopPropagation()">
+        <h3 style="margin:0 0 10px 0; text-align:center; color:#f1c40f;">玉米優惠選單</h3>
+        <button class="btn-corn-opt" style="background:#f1c40f;" onclick="addPromoCorn('玉米(2隻)', 75)">2 隻優惠價 $75</button>
+        <button class="btn-corn-opt" style="background:#f39c12;" onclick="addPromoCorn('玉米(3隻)', 110)">3 隻優惠價 $110</button>
+        <button class="btn-corn-opt" style="background:#555; color:white; font-size:1rem; margin-top:10px;" onclick="closeCornMenu()">取消</button>
+    </div>
+</div>
+
+<div id="cash-layout" class="main-layout">
+    <div class="panel">
+        <button class="btn-item" id="btn-雞蛋糕小" onpointerdown="startPress(event, '雞蛋糕小')" onpointerup="endPress()" onclick="selProd('雞蛋糕小', 55, this)">小 $55</button>
+        <button class="btn-item" id="btn-雞蛋糕大" onpointerdown="startPress(event, '雞蛋糕大')" onpointerup="endPress()" onclick="selProd('雞蛋糕大', 110, this)">大 $110</button>
+        <button class="btn-item" id="btn-玉米" onpointerdown="startCornPress(event)" onpointerup="endPress()" onclick="selProd('玉米', 40, this)">玉米 $40</button>
+    </div>
+
+    <div class="panel panel-middle">
+        <div id="order-list" class="order-list"></div>
+        <div class="qty-grid">
+            <button class="btn-qty" onclick="adjustQty(1)">+1</button>
+            <button class="btn-qty" onclick="adjustQty(2)">+2</button>
+            <button class="btn-qty" onclick="adjustQty(3)">+3</button>
+            <button class="btn-qty" onclick="adjustQty(4)">+4</button>
+            <button class="btn-qty" onclick="adjustQty(5)">+5</button>
+            <button class="btn-qty" onclick="adjustQty(6)">+6</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="display-box" id="main-display">
+            <div style="display:flex; flex-direction:column; padding-bottom:5px;">
+                <p id="total-txt">應收: $0</p>
+                <p id="paid-txt" style="font-size:1rem; color:#81ecec; margin:0; font-weight:bold;">實收: $0</p>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:4px;">
+                <span id="change-label" style="color:#f1c40f; font-weight:bold; margin-top:4px;">找零</span>
+                <p id="change-txt">--</p>
+            </div>
+        </div>
+        <div class="cash-grid">
+            <button class="btn-cash" onclick="addPaid(1000)">1000</button>
+            <button class="btn-cash" onclick="addPaid(50)">50</button>
+            <button class="btn-cash" onclick="addPaid(500)">500</button>
+            <button class="btn-cash" onclick="addPaid(10)">10</button>
+            <button class="btn-cash" onclick="addPaid(100)">100</button>
+            <button class="btn-cash btn-clear" onclick="clearPaid()">清實收</button>
+        </div>
+        <button class="btn-reset" onclick="resetAll()">完成結帳</button>
+    </div>
+</div>
+
+<div id="report-panel">
+    <h2 style="color:#2ecc71">今日營業數據</h2>
+    <div id="stat-display" style="background:#2d2d2d; padding:15px; border-radius:12px; margin-bottom:15px; font-size:1.2rem;"></div>
+    <div id="log-container"></div>
+    <button onclick="clearHistory()" style="background:#c0392b; color:white; border:none; padding:15px; border-radius:12px; margin-top:20px; width:100%">清空當日數據</button>
+</div>
+
+<script>
+    window.oncontextmenu = function(e) { e.preventDefault(); return false; };
+
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(event) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) event.preventDefault();
+        lastTouchEnd = now;
+    }, false);
+
+    document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+
+    let total = 0, paid = 0, selectedKey = "", basket = {};
+    let pressTimer;
+
+    function checkOrientation() {
+        const isLandscape = window.innerWidth > window.innerHeight;
+        document.getElementById('cash-layout').style.display = isLandscape ? 'grid' : 'none';
+        document.getElementById('report-panel').style.display = isLandscape ? 'none' : 'flex';
+    }
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('load', () => { checkOrientation(); updateReport(); update(); });
+
+    function startPress(e, name) { pressTimer = setTimeout(() => { document.getElementById(`btn-${name}`).classList.toggle('sold-out'); if (navigator.vibrate) navigator.vibrate(100); }, 600); }
+    function startCornPress(e) { pressTimer = setTimeout(() => { document.getElementById('corn-menu').style.display = 'flex'; if (navigator.vibrate) navigator.vibrate(100); }, 600); }
+    function endPress() { clearTimeout(pressTimer); }
+    function closeCornMenu() { document.getElementById('corn-menu').style.display = 'none'; }
+
+    let rowPressTimer;
+    function startRowPress(key) {
+        rowPressTimer = setTimeout(() => {
+            delete basket[key];
+            if(selectedKey === key) selectedKey = "";
+            if (navigator.vibrate) navigator.vibrate(80);
+            calculateTotal(); update();
+        }, 600);
+    }
+    function endRowPress() { clearTimeout(rowPressTimer); }
+
+    function selProd(name, price, el) {
+        if (el.classList.contains('sold-out')) return;
+        if (!basket[name]) basket[name] = { qty: 0, price: price };
+        basket[name].qty += 1;
+        selectedKey = name;
+        document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+        calculateTotal(); update();
+    }
+
+    function addPromoCorn(label, price) {
+        basket[label] = { qty: 1, price: price };
+        selectedKey = label;
+        document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
+        document.getElementById('btn-玉米').classList.add('selected');
+        closeCornMenu(); calculateTotal(); update();
+    }
+
+    function adjustQty(num) {
+        if (!selectedKey || !basket[selectedKey]) return;
+        basket[selectedKey].qty = num;
+        calculateTotal(); update();
+    }
+
+    function calculateTotal() {
+        let sum = 0;
+        for (let key in basket) { sum += (basket[key].qty * basket[key].price); }
+        total = sum;
+    }
+
+    function removeOne(key) {
+        if (!basket[key]) return;
+        if (basket[key].qty > 1) { basket[key].qty -= 1; } 
+        else { delete basket[key]; if(selectedKey === key) selectedKey = ""; }
+        calculateTotal(); update();
+    }
+
+    function addPaid(amount) { paid += amount; update(); }
+    function clearPaid() { paid = 0; update(); }
+
+    function update() {
+        document.getElementById('total-txt').innerText = `應收: $${total}`;
+        document.getElementById('paid-txt').innerText = `實收: $${paid}`;
+        
+        const changeTxt = document.getElementById('change-txt');
+        const changeLabel = document.getElementById('change-label');
+
+        if (paid === 0) {
+            changeTxt.innerText = "--"; changeTxt.style.color = "#f1c40f";
+            changeLabel.innerText = "找零"; changeLabel.style.color = "#f1c40f";
+        } else if (paid < total) {
+            changeTxt.innerText = `${total - paid}`; changeTxt.style.color = "#ff4757";
+            changeLabel.innerText = "還差"; changeLabel.style.color = "#ff4757";
+        } else {
+            changeTxt.innerText = `${paid - total}`; changeTxt.style.color = "#f1c40f";
+            changeLabel.innerText = "找零"; changeLabel.style.color = "#f1c40f";
+        }
+        
+        const listDiv = document.getElementById('order-list');
+        listDiv.innerHTML = "";
+        let keys = Object.keys(basket);
+        for (let i = 0; i < 3; i++) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = "order-item";
+            if (keys[i]) {
+                let k = keys[i];
+                itemDiv.onpointerdown = () => startRowPress(k);
+                itemDiv.onpointerup = () => endRowPress();
+                itemDiv.onclick = () => removeOne(k);
+                
+                itemDiv.innerHTML = `<div>${k}</div><span>x ${basket[k].qty}</span>`;
+            } else {
+                itemDiv.innerHTML = `<div></div><span></span>`;
+            }
+            listDiv.appendChild(itemDiv);
+        }
+    }
+
+    function resetAll() {
+        if (total === 0 || paid === 0) { clearCurrentOrder(); return; }
+        let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
+        const now = new Date();
+        const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+        logs.unshift({ id: Date.now(), time: timeStr, amount: total, detail: Object.entries(basket).map(([n, obj]) => `${n}x${obj.qty}`).join(', ') });
+        localStorage.setItem('sales_logs', JSON.stringify(logs.slice(0, 300)));
+        document.getElementById('main-display').classList.add('success-anim');
+        setTimeout(() => document.getElementById('main-display').classList.remove('success-anim'), 500);
+        clearCurrentOrder(); updateReport();
+    }
+
+    function clearCurrentOrder() {
+        total = 0; paid = 0; basket = {}; selectedKey = "";
+        document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('selected'));
+        update();
+    }
+
+    function updateReport() {
+        let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
+        let sum = logs.reduce((a, b) => a + b.amount, 0);
+        document.getElementById('stat-display').innerHTML = `總營收: <b style="color:#f1c40f">$${sum}</b> | 總單數: <b>${logs.length}</b>`;
+        document.getElementById('log-container').innerHTML = logs.map(l => `
+            <div onclick="voidItem(${l.id}, ${l.amount})" style="border-bottom:1px solid #333; padding:12px 0">
+                <span style="color:#2ecc71">[${l.time}] $${l.amount}</span><br><small style="color:#aaa">${l.detail}</small>
+            </div>
+        `).join('');
+    }
+
+    function voidItem(id, amt) {
+        if (confirm(`確定作廢 $${amt}？`)) {
+            let logs = JSON.parse(localStorage.getItem('sales_logs') || "[]");
+            localStorage.setItem('sales_logs', JSON.stringify(logs.filter(l => l.id !== id)));
+            updateReport();
+        }
+    }
+    function clearHistory() { if (confirm("清空數據？")) { localStorage.clear(); updateReport(); } }
+</script>
+</body>
+</html>
