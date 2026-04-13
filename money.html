@@ -104,8 +104,8 @@
 
 <div id="cash-layout" class="main-layout">
     <div class="panel">
-        <button class="btn-item" id="btn-雞蛋糕大" onpointerdown="startPress(event, '雞蛋糕大')" onpointerup="endPress()" onclick="selProd('雞蛋糕大', 100, this)">大 $100</button>
         <button class="btn-item" id="btn-雞蛋糕小" onpointerdown="startPress(event, '雞蛋糕小')" onpointerup="endPress()" onclick="selProd('雞蛋糕小', 50, this)">小 $50</button>
+        <button class="btn-item" id="btn-雞蛋糕大" onpointerdown="startPress(event, '雞蛋糕大')" onpointerup="endPress()" onclick="selProd('雞蛋糕大', 100, this)">大 $100</button>
         <button class="btn-item" id="btn-玉米" onpointerdown="startCornPress(event)" onpointerup="endPress()" onclick="selProd('玉米', 40, this)">玉米 $40</button>
     </div>
 
@@ -152,6 +152,7 @@
 </div>
 
 <script>
+    // 腳本內容保持不變
     window.oncontextmenu = function(e) { e.preventDefault(); return false; };
 
     let lastTouchEnd = 0;
@@ -174,13 +175,11 @@
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('load', () => { checkOrientation(); updateReport(); update(); });
 
-    // --- 按鈕長按邏輯 ---
     function startPress(e, name) { pressTimer = setTimeout(() => { document.getElementById(`btn-${name}`).classList.toggle('sold-out'); if (navigator.vibrate) navigator.vibrate(100); }, 600); }
     function startCornPress(e) { pressTimer = setTimeout(() => { document.getElementById('corn-menu').style.display = 'flex'; if (navigator.vibrate) navigator.vibrate(100); }, 600); }
     function endPress() { clearTimeout(pressTimer); }
     function closeCornMenu() { document.getElementById('corn-menu').style.display = 'none'; }
 
-    // --- 明細行長按邏輯 ---
     let rowPressTimer;
     function startRowPress(key) {
         rowPressTimer = setTimeout(() => {
@@ -258,11 +257,9 @@
             itemDiv.className = "order-item";
             if (keys[i]) {
                 let k = keys[i];
-                // 註冊點擊(扣一)與長按(全刪)
                 itemDiv.onpointerdown = () => startRowPress(k);
                 itemDiv.onpointerup = () => endRowPress();
                 itemDiv.onclick = () => removeOne(k);
-                
                 itemDiv.innerHTML = `<div>${k}</div><span>x ${basket[k].qty}</span>`;
             } else {
                 itemDiv.innerHTML = `<div></div><span></span>`;
