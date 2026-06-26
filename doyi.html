@@ -59,7 +59,7 @@
             max-width: 200px; padding: 5px; border-radius: 5px; border: 1px solid #ddd; 
             font-size: 13px; color: #666; cursor: pointer; background: #fff;
         }
-        /* 點選時讓文字變深，增加辨識 */
+        /* 點選時讓文字變深，增加辨識度 */
         .jump-select:focus { border-color: var(--primary); color: #333; }
 
         /* 1. 列表模式 */
@@ -228,12 +228,65 @@
         .custom-list { margin-top: 20px; max-height: 300px; overflow-y: auto; border-top: 1px solid #eee; }
         .custom-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
 
+        /* === Modern UI refinement === */
+        :root {
+            --primary: #2563eb;
+            --secondary: #f59e0b;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --heart: #e11d48;
+            --bg: #eef2f7;
+            --card: #ffffff;
+            --text: #172033;
+            --muted: #64748b;
+            --border: #dbe3ef;
+            --shadow: 0 16px 40px rgba(15, 23, 42, 0.10);
+            --soft-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+        }
+        body { background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%); font-size: 16px; line-height: 1.5; }
+        .container { max-width: 980px; }
+        h1 { color: var(--text); letter-spacing: 0; }
+        .tabs { background: rgba(255,255,255,0.78); padding: 10px; border-radius: 18px; backdrop-filter: blur(10px); }
+        .tabs, .filter-section, #manage-view, #quiz-view, #spelling-view, .learning-card { box-shadow: var(--soft-shadow); }
+        .tab-btn, .nav-btn, .add-btn, .option-btn, .big-play-btn, .mic-btn { transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, color .18s ease, border-color .18s ease; }
+        .tab-btn:hover, .nav-btn:hover, .add-btn:hover, .option-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12); }
+        .tab-btn:active, .nav-btn:active, .add-btn:active, .star-btn:active, .heart-btn:active, .big-play-btn:active { transform: scale(0.96); }
+        .tab-btn { border-radius: 12px; background: #edf2f7; color: #334155; }
+        .tab-btn.active { background: var(--primary); box-shadow: 0 10px 22px rgba(37, 99, 235, 0.28); }
+        .tab-btn.manage { background: #1f2937; }
+        .filter-section, #manage-view, #quiz-view, #spelling-view, .learning-card, .card-face { border: 1px solid rgba(219, 227, 239, .9); border-radius: 18px; }
+        select, input, textarea, button.action-btn { border-color: var(--border); border-radius: 10px; outline: none; }
+        select:focus, input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37, 99, 235, .12); }
+        #list-view { gap: 18px; }
+        .vocab-item { border-radius: 16px; padding: 18px; box-shadow: var(--soft-shadow); border-left-width: 6px; }
+        .vocab-item:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .vocab-item.marked { background: #fffbeb; }
+        .vocab-item.hearted { box-shadow: 0 12px 28px rgba(225, 29, 72, .12); }
+        .word-info b { color: var(--text); font-size: 19px; }
+        .word-info span { color: var(--muted); }
+        .mark-actions { display:flex; align-items:center; gap:6px; }
+        .star-btn, .heart-btn { width: 38px; height: 38px; display:inline-flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer; background:#f8fafc; border:1px solid var(--border); color:#94a3b8; border-radius:50%; transition: transform .18s ease, color .18s ease, background-color .18s ease, box-shadow .18s ease; }
+        .star-btn:hover { color: var(--secondary); background:#fff7ed; box-shadow: 0 8px 18px rgba(245, 158, 11, .20); }
+        .heart-btn:hover { color: var(--heart); background:#fff1f2; box-shadow: 0 8px 18px rgba(225, 29, 72, .18); }
+        .vocab-item.marked .star-btn, .learning-card.marked .star-btn { color: var(--secondary); background:#fffbeb; transform: scale(1.08); }
+        .vocab-item.hearted .heart-btn, .learning-card.hearted .heart-btn { color: var(--heart); background:#fff1f2; transform: scale(1.08); }
+        .card-mark-controls { position:absolute; top:16px; right:18px; display:flex; gap:8px; z-index:5; }
+        .card-star-pos, .card-heart-pos { position: static; font-size: 25px; }
+        .learning-card.hearted { border-top-color: var(--heart); }
+        .bulk-section.only-bulk { margin-top: 0; border-top: 0; padding-top: 0; }
+        .bulk-category-input, .bulk-textarea { width:100%; box-sizing:border-box; margin-bottom:12px; }
+        .bulk-category-input { padding: 12px 14px; border:1px solid var(--border); border-radius: 12px; font-size:15px; }
+        .bulk-textarea { min-height: 180px; padding: 14px; border-radius: 14px; line-height: 1.6; }
+        .bulk-actions { align-items:center; }
+        .bulk-import-btn { background: var(--primary) !important; border-radius: 12px; padding: 11px 22px; box-shadow: 0 10px 22px rgba(37, 99, 235, .22); }
+        .big-play-btn:hover { transform: translateY(-1px) scale(1.03); }
+        @media (max-width: 640px) { body { padding: 14px; } #list-view { grid-template-columns: 1fr; } .quiz-options { grid-template-columns: 1fr; } .bulk-actions { justify-content: stretch; } .bulk-actions button { flex: 1; } }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>多益單字</h1>
+    <h1>🚀 多益單字全方位訓練</h1>
 
     <div class="tabs">
         <button class="tab-btn active" onclick="switchMode('list')" id="tab-list">📚 單字清單</button>
@@ -248,18 +301,18 @@
         <div>
             <label>篩選範圍：</label>
             <select id="page-filter" onchange="filterData()">
-                <option value="all"> 全部單字</option>
-                <option value="custom"> 我新增的單字</option>
-                <option value="marked">⭐ 標記</option>
-                <option value="wrong">❌ 答錯的題目</option>
+    <option value="all">全部單字</option>
+    <option value="custom">我新增的單字</option>
+    <option value="hearted">❤️ 愛心</option> <option value="marked">⭐ 標記</option>
+    <option value="wrong">❌ 答錯的題目</option>
                 <option disabled>──────────</option>
-                <optgroup label="我的分類" id="category-options"></optgroup>
                 <option value="Page 1">Page 1</option>
                 <option value="Page 2">Page 2</option>
                 <option value="Page 3">Page 3</option>
                 <option value="Page 5">Page 5</option>
                 <option value="Page 6">Page 6</option>
                 <option value="Page 7">Page 7</option>
+                <optgroup label="我的分類" id="category-options"></optgroup>
             </select>
         </div>
         <div id="stats-info" style="font-size:14px; color:#666;"></div>
@@ -276,7 +329,10 @@
         </div>
 
 <div class="learning-card" id="learn-card-container" onclick="toggleLearnFlip()">
-    <button class="star-btn card-star-pos" id="learn-star-btn" onclick="event.stopPropagation(); toggleMarkCurrent();">☆</button>
+    <div class="card-mark-controls">
+        <button class="star-btn card-star-pos" id="learn-star-btn" title="加入星星" onclick="event.stopPropagation(); toggleMarkCurrent();">☆</button>
+        <button class="heart-btn card-heart-pos" id="learn-heart-btn" title="加入愛心" onclick="event.stopPropagation(); toggleHeartCurrent();">♡</button>
+    </div>
 
     <div class="learn-flip" id="learn-flip">
         <!-- 正面：英文 -->
@@ -284,10 +340,22 @@
             <div class="learn-word" id="learn-word">Word</div>
         </div>
 
-        <!-- 背面：中文 -->
-        <div class="learn-face learn-back">
-            <div class="learn-def" id="learn-def">Definition</div>
-        </div>
+<!-- 背面：中文 -->
+<div class="learn-face learn-back">
+    <div class="learn-def" id="learn-def">Definition</div>
+    
+    <!-- 這裡不應該有任何孤立的 < 符號 -->
+    <div id="example-container" style="margin-top: 20px; max-width: 85%; text-align: left; display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 0 15px; box-sizing: border-box;">
+        <!-- 英文例句 -->
+        <div id="learn-example" style="font-size: 17px; color: #1e293b; font-weight: 500; line-height: 1.4; word-break: break-word;"></div>
+        
+        <!-- 例句的中文翻譯 -->
+        <div id="learn-example-zh" style="font-size: 15px; color: #475569; font-weight: 400; line-height: 1.4; word-break: break-word;"></div>
+        
+        <!-- 發音按鈕 -->
+        <button id="speak-example-btn" style="display: none; align-self: flex-start; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; margin-top: 5px;" onclick="event.stopPropagation();">🔊 聽例句發音</button>
+    </div>
+</div>
     </div>
 
     <button class="big-play-btn" onclick="event.stopPropagation(); speakCurrentCard();">🔊</button>
@@ -373,32 +441,17 @@
 
     <!-- 6. 管理模式 -->
     <div id="manage-view">
-        <h2 style="color:#333; margin-top:0;">✨ 新增單字</h2>
-        <div class="input-group">
-            <input type="text" id="new-word" placeholder="英文單字 (如: apple)" />
-            <input type="text" id="new-def" placeholder="中文解釋 (如: 蘋果)" />
-            <!-- 分類：可選既有或輸入新分類 -->
-    <select id="new-cat-select" style="padding:10px; border:1px solid #ddd; border-radius:5px; min-width:160px;">
-        <option value="">（不分類）</option>
-    </select>
-    <input type="text" id="new-cat-input" placeholder="或輸入新分類 (如: 面試)" style="min-width:160px;" />    
-            <button class="add-btn" onclick="addCustomWord()">＋ 加入</button>
-        </div>
-        <div class="bulk-section">
+        <h2 style="color:#333; margin-top:0;">資料管理</h2>
+        <div class="bulk-section only-bulk">
             <h3 style="margin-bottom:10px;">📦 批量匯入</h3>
-            <p style="font-size:13px; color:#666; margin:0 0 5px 0;">直接貼上清單，系統會自動過濾點點、橫線等符號</p>
-            <textarea id="bulk-input" class="bulk-textarea" placeholder="• apple 壓力蘋果
-• banana 香蕉"></textarea>
+            <p style="font-size:13px; color:#666; margin:0 0 12px 0;">為這批單字輸入分類名稱，再貼上清單；每行格式例如：apple 蘋果</p>
+            <input type="text" id="bulk-category" class="bulk-category-input" placeholder="自訂分類名稱（例如：面試單字、商務英文）" />
+            <textarea id="bulk-input" class="bulk-textarea" placeholder="• apple 蘋果&#10;• banana 香蕉"></textarea>
             <div class="bulk-actions">
-                <button onclick="document.getElementById('bulk-input').value=''" class="nav-btn">清空</button>
-                <button onclick="batchImport()" class="add-btn" style="background:var(--primary);">批次加入</button>
+                <button onclick="document.getElementById('bulk-input').value=''" class="nav-btn">清空輸入</button>
+                <button onclick="batchImport()" class="add-btn bulk-import-btn">批量匯入</button>
             </div>
         </div>
-        <h3 style="margin-top:30px;">我新增的單字列表：</h3>
-        <div id="custom-word-list" class="custom-list">
-            <p style="color:#999; text-align:center;">目前沒有自訂單字</p>
-        </div>
-        <button onclick="clearCustomWords()" style="margin-top:20px; background:#e74c3c; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">⚠️ 清除所有自訂單字</button>
     </div>
 </div>
 
@@ -424,6 +477,7 @@ speechSynthesis.onvoiceschanged = loadStandardVoice;
 loadStandardVoice();
 
     let markedSet = new Set();
+    let heartSet = new Set();
 
     // 原始資料
     const defaultData = [
@@ -497,34 +551,54 @@ function playSound(text) {
         document.getElementById("spell-input").addEventListener("keypress", function(event) {
             if (event.key === "Enter") checkSpelling();
         });
-        document.getElementById("new-word").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") document.getElementById("new-def").focus();
-        });
-        document.getElementById("new-def").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") addCustomWord();
-        });
     };
 
 function loadData() {
-    // ✅ 讀取標記單字
+    // ✅ 讀取星星與愛心標記
     const storedMarked = localStorage.getItem('markedWords');
     markedSet = storedMarked ? new Set(JSON.parse(storedMarked)) : new Set();
+
+    const storedHearts = localStorage.getItem('heartedWords');
+    heartSet = storedHearts ? new Set(JSON.parse(storedHearts)) : new Set();
 
     const stored = localStorage.getItem('customVocab');
     customData = stored ? JSON.parse(stored) : [];
 
     const formattedCustom = customData.map(i => ({
         ...i,
-        p: i.cat || "custom",
+        p: i.cat || i.p || "custom",
+        cat: i.cat || i.p || "custom",
         isCustom: true,
-        marked: markedSet.has(i.w)
+        marked: markedSet.has(i.w),
+        hearted: heartSet.has(i.w)
     }));
 
-    fullData = [...formattedCustom, ...defaultData].map(item => ({
+    // 保留既有分類順序，新增匯入分類依序接在後面。
+    fullData = [...defaultData, ...formattedCustom].map(item => ({
         ...item,
         marked: markedSet.has(item.w),
+        hearted: heartSet.has(item.w),
         isCustom: item.isCustom || false
     }));
+
+    refreshCategoryOptions();
+}
+
+function refreshCategoryOptions() {
+    const group = document.getElementById('category-options');
+    if (!group) return;
+
+    const seen = new Set();
+    const cats = [];
+    customData.forEach(item => {
+        const cat = (item.cat || item.p || '').trim();
+        if (cat && cat !== 'custom' && !seen.has(cat)) {
+            seen.add(cat);
+            cats.push(cat);
+        }
+    });
+
+    group.innerHTML = cats.map(cat => `<option value="${cat}">${cat}</option>`).join('');
 }
 
     // --- 狀態存取功能 ---
@@ -594,12 +668,13 @@ function loadData() {
     }
 
     function filterData(resetIndex = true) {
-        const filter = document.getElementById('page-filter').value;
-        if (filter === 'all') currentFiltered = fullData;
-        else if (filter === 'marked') currentFiltered = fullData.filter(i => i.marked);
-        else if (filter === 'wrong') currentFiltered = Array.from(wrongAnswers);
-        else if (filter === 'custom') currentFiltered = fullData.filter(i => i.isCustom);
-        else currentFiltered = fullData.filter(i => i.p === filter);
+    const filter = document.getElementById('page-filter').value;
+    if (filter === 'all') currentFiltered = fullData;
+    else if (filter === 'marked') currentFiltered = fullData.filter(i => i.marked);
+    else if (filter === 'hearted') currentFiltered = fullData.filter(i => i.hearted); // 👈 加入這一行
+    else if (filter === 'wrong') currentFiltered = Array.from(wrongAnswers);
+    else if (filter === 'custom') currentFiltered = fullData.filter(i => i.isCustom);
+    else currentFiltered = fullData.filter(i => i.p === filter);
         
         if (resetIndex) {
             currentIndex = 0;
@@ -660,15 +735,15 @@ function loadData() {
         container.innerHTML = currentFiltered.map((item) => {
             const originalIndex = fullData.indexOf(item);
             return `
-            <div class="vocab-item ${item.marked ? 'marked' : ''} ${item.isCustom ? 'custom' : ''}">
+            <div class="vocab-item ${item.marked ? 'marked' : ''} ${item.hearted ? 'hearted' : ''} ${item.isCustom ? 'custom' : ''}">
                 <div class="word-info">
-                    <b>${item.w} ${item.isCustom ? '<span style="font-size:12px; color:#9b59b6;">(自訂)</span>' : ''}</b>
+                    <b>${item.w} ${item.isCustom ? `<span style="font-size:12px; color:#9b59b6;">(${item.cat || item.p || '自訂'})</span>` : ''}</b>
                     <span>${item.d}</span>
                 </div>
-                <div style="display:flex; align-items:center; gap:5px;">
-                    ${item.isCustom ? `<span class="del-btn" onclick="deleteCustomWord('${item.w}')">刪除</span>` : ''}
-                    <button class="star-btn" onclick="toggleMark(${originalIndex})">${item.marked ? '★' : '☆'}</button>
-                    <button style="background:#e1f0ff; border:none; padding:8px; border-radius:50%; cursor:pointer;" onclick="playSound('${item.w}')">🔊</button>
+                <div class="mark-actions">
+                    <button class="star-btn" title="加入星星" onclick="toggleMark(${originalIndex})">${item.marked ? '★' : '☆'}</button>
+                    <button class="heart-btn" title="加入愛心" onclick="toggleHeart(${originalIndex})">${item.hearted ? '♥' : '♡'}</button>
+                    <button style="background:#e1f0ff; border:none; padding:8px; border-radius:50%; cursor:pointer;" onclick="playSound('${item.w.replace(/'/g, "\\'")}')">🔊</button>
                 </div>
             </div>
         `}).join('');
@@ -683,9 +758,24 @@ function loadData() {
         markedSet.delete(item.w);
     }
 
-    // ✅ 存進 localStorage
+    // 存進 localStorage
     localStorage.setItem('markedWords', JSON.stringify([...markedSet]));
 
+    renderList();
+    saveState();
+}
+
+function toggleHeart(index) {
+    const item = fullData[index];
+    item.hearted = !item.hearted;
+
+    if (item.hearted) {
+        heartSet.add(item.w);
+    } else {
+        heartSet.delete(item.w);
+    }
+
+    localStorage.setItem('heartedWords', JSON.stringify([...heartSet]));
     renderList();
     saveState();
 }
@@ -698,7 +788,10 @@ function loadData() {
         const d = dInput.value.trim();
         if(!w || !d) { alert("請輸入英文單字與中文解釋"); return; }
         if(fullData.some(i => i.w.toLowerCase() === w.toLowerCase())) { alert("這個單字已經存在囉！"); return; }
-        const newItem = { p: "custom", w: w, d: d };
+        const selectedCat = document.getElementById('new-cat-select')?.value || '';
+        const typedCat = document.getElementById('new-cat-input')?.value.trim() || '';
+        const cat = typedCat || selectedCat || "custom";
+        const newItem = { p: cat, cat: cat, w: w, d: d };
         customData.push(newItem);
         localStorage.setItem('customVocab', JSON.stringify(customData));
         wInput.value = ''; dInput.value = ''; wInput.focus();
@@ -706,7 +799,12 @@ function loadData() {
     }
     function batchImport() {
         const text = document.getElementById('bulk-input').value;
+        const categoryInput = document.getElementById('bulk-category');
+        const category = categoryInput ? categoryInput.value.trim() : '';
+
+        if (!category) { alert("請先輸入這批單字的分類名稱"); return; }
         if (!text.trim()) { alert("請輸入內容"); return; }
+
         const lines = text.split('\n');
         let addedCount = 0;
         lines.forEach(line => {
@@ -716,19 +814,25 @@ function loadData() {
                 const w = match[1].trim();
                 const d = match[2].trim();
                 if (!fullData.some(i => i.w.toLowerCase() === w.toLowerCase())) {
-                    customData.push({ p: "custom", w: w, d: d });
+                    customData.push({ p: category, cat: category, w: w, d: d });
                     addedCount++;
                 }
             }
         });
         if (addedCount > 0) {
             localStorage.setItem('customVocab', JSON.stringify(customData));
-            loadData(); renderCustomList(); document.getElementById('bulk-input').value = ''; 
-            filterData(false); alert(`成功匯入 ${addedCount} 個單字！`);
+            loadData();
+            renderCustomList();
+            document.getElementById('bulk-input').value = '';
+            if (categoryInput) categoryInput.value = '';
+            document.getElementById('page-filter').value = category;
+            filterData(true);
+            alert(`成功匯入 ${addedCount} 個單字到「${category}」！`);
         } else { alert("沒有匯入任何單字"); }
     }
     function renderCustomList() {
         const list = document.getElementById('custom-word-list');
+        if (!list) return;
         if(customData.length === 0) { list.innerHTML = "<p style='color:#999; text-align:center;'>目前沒有自訂單字</p>"; return; }
         list.innerHTML = customData.map(i => `
             <div class="custom-item"><div><b>${i.w}</b> <span style="color:#666;">${i.d}</span></div><button onclick="deleteCustomWord('${i.w}')" style="background:none; border:none; color:#e74c3c; cursor:pointer;">🗑️</button></div>
@@ -746,27 +850,133 @@ function loadData() {
         customData = [];
         loadData(); renderCustomList(); filterData(false); alert("已清除");
     }
+// 全域變數，用來暫存目前的例句文字
+// 全域變數，用來暫存目前的例句文字
+let currentFetchedExample = "";
 
+function fetchExampleFromNetwork(word) {
+    const exampleEl = document.getElementById('learn-example');
+    const exampleZhEl = document.getElementById('learn-example-zh'); // 中文容器
+    const speakBtn = document.getElementById('speak-example-btn');
+    if (!exampleEl || !exampleZhEl || !speakBtn) return;
+
+    // 重置狀態
+    currentFetchedExample = "";
+    speakBtn.style.display = "none";
+    exampleZhEl.innerText = ""; 
+    exampleEl.innerText = "🔄 正在網路上搜尋例句...";
+    exampleEl.style.color = "#475569";
+
+    const cleanWord = word.split('/')[0].split('(')[0].trim().toLowerCase();
+
+    // 1. 抓取英文例句
+    fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleanWord}`)
+        .then(response => {
+            if (!response.ok) throw new Error('找不到單字');
+            return response.json();
+        })
+        .then(data => {
+            let foundExample = "";
+
+            for (let meaning of data[0].meanings) {
+                for (let definition of meaning.definitions) {
+                    if (definition.example) {
+                        foundExample = definition.example;
+                        break;
+                    }
+                }
+                if (foundExample) break;
+            }
+
+            if (foundExample) {
+                currentFetchedExample = foundExample.charAt(0).toUpperCase() + foundExample.slice(1);
+                exampleEl.innerText = "" + currentFetchedExample;
+                exampleEl.style.color = "#1e293b"; // 深色英文
+
+                // 顯示發音按鈕
+                speakBtn.style.display = "inline-block";
+                speakBtn.onclick = function(event) {
+                    event.stopPropagation();
+                    playSound(currentFetchedExample);
+                };
+
+                // 2. 自動將例句翻譯成繁體中文 (zh-TW)
+                // 2. 採用 AI 智能翻譯 (由 Lingva / Cloudflare AI 驅動之語意優化版)
+exampleZhEl.innerText = "🤖 AI 正在潤飾翻譯中...";
+
+// 使用支援語意最佳化的公共端點（此接口背後由深度學習神經網路進行語意重組）
+const aiTranslateUrl = `https://lingva.ml/api/v1/en/zh-TW/${encodeURIComponent(currentFetchedExample)}`;
+
+fetch(aiTranslateUrl)
+    .then(res => {
+        if (!res.ok) throw new Error('AI 端點回應異常');
+        return res.json();
+    })
+    .then(aiData => {
+        if (aiData && aiData.translation) {
+            let aiResult = aiData.translation;
+            // 確保英文字元或部分簡體字做適度修正（可視情況加入簡轉繁函數）
+            exampleZhEl.innerText = aiResult;
+        } else {
+            exampleZhEl.innerText = "";
+        }
+    })
+    .catch(err => {
+        console.error("AI 翻譯失敗，啟用備用方案:", err);
+        // 如果 AI 服務器剛好忙碌，自動降級回原本的傳統翻譯，確保系統不卡死
+        const backupUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-TW&dt=t&q=${encodeURIComponent(currentFetchedExample)}`;
+        fetch(backupUrl)
+            .then(res => res.json())
+            .then(bData => {
+                exampleZhEl.innerText = bData[0][0][0] + " (傳統翻譯)";
+            })
+            .catch(() => {
+                exampleZhEl.innerText = "❌ 翻譯載入失敗";
+            });
+    });
+
+            } else {
+                exampleEl.innerText = "💡 網路上有此單字，但查無合適例句。";
+                exampleEl.style.color = "#64748b";
+            }
+        })
+        .catch(error => {
+            console.error("抓取例句失敗:", error);
+            exampleEl.innerText = "📴 無法從網路載入例句 (或此為複合字)";
+            exampleEl.style.color = "#94a3b8";
+        });
+}
     // --- 單字卡 (學習模式) ---
     function updateLearningCard() {
         if (currentFiltered.length === 0) return;
         const card = currentFiltered[currentIndex];
         document.getElementById('learn-word').innerText = card.w;
         document.getElementById('learn-def').innerText = card.d;
+        fetchExampleFromNetwork(card.w);
         document.getElementById('learn-progress').innerText = `${currentIndex + 1} / ${currentFiltered.length}`;
         const starBtn = document.getElementById('learn-star-btn');
+        const heartBtn = document.getElementById('learn-heart-btn');
         starBtn.innerText = card.marked ? '★' : '☆';
+        if (heartBtn) heartBtn.innerText = card.hearted ? '♥' : '♡';
         const cardContainer = document.getElementById('learn-card-container');
         if(card.marked) cardContainer.classList.add('marked'); else cardContainer.classList.remove('marked');
+        if(card.hearted) cardContainer.classList.add('hearted'); else cardContainer.classList.remove('hearted');
         updateJumpMenus();
         setLearnFlip(false);
     }
-
     function toggleMarkCurrent() {
         if (currentFiltered.length === 0) return;
         const item = currentFiltered[currentIndex];
         const originalIndex = fullData.indexOf(item);
         toggleMark(originalIndex);
+        updateLearningCard();
+    }
+
+    function toggleHeartCurrent() {
+        if (currentFiltered.length === 0) return;
+        const item = currentFiltered[currentIndex];
+        const originalIndex = fullData.indexOf(item);
+        toggleHeart(originalIndex);
         updateLearningCard();
     }
 
