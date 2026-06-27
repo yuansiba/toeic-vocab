@@ -464,6 +464,7 @@
             
             <input type="text" id="rename-category-input" placeholder="輸入新名稱" style="padding: 8px; border-radius: 8px; border: 1px solid var(--border); max-width: 150px;">
             <button onclick="renameCategory()" style="background: var(--primary); color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size:14px; font-weight:bold;">修改分類名</button>
+            <button onclick="deleteEntireCategory()" style="background: #ef4444; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size:14px; font-weight:bold; margin-left: 5px;">刪除整個分類</button>
         </div>
 
         <div style="border: 1px solid var(--border); border-radius: 12px; max-height: 250px; overflow-y: auto; padding: 12px; background: #f8fafc;">
@@ -881,6 +882,52 @@ function renameCategory() {
     alert(`分類已由「${oldName}」成功更名為「${newName}」！`);
 }
 
+// 👇 新增：一鍵刪除整個自訂分類的所有單字
+function deleteEntireCategory() {
+    const selectedCat = document.getElementById('manage-category-select').value;
+    
+    if (!selectedCat) {
+        alert("請先選取要刪除的分類！");
+        return;
+    }
+    
+    // 計算該分類下總共有幾個單字，方便提示使用者
+    const wordCount = fullData.filter(item => item.p === selectedCat).length;
+    
+    // 第一次安全確認
+    if (!confirm(`⚠️ 警告：您確定要刪除整個「${selectedCat}」分類嗎？\n這將會一次刪除該分類內的所有 ${wordCount} 個單字，且無法復原！`)) {
+        return;
+    }
+    
+    // 第二次防止誤點確認
+    if (!confirm(`請再次確認：真的要清空「${selectedCat}」內的所有單字嗎？`)) {
+        return;
+    }
+    
+    // 核心邏輯：從總資料庫與自訂資料庫中剔除該分類名稱的所有項目
+    fullData = fullData.filter(item => item.p !== selectedCat);
+    if (typeof customData !== 'undefined') {
+        customData = customData.filter(item => item.p !== selectedCat && item.cat !== selectedCat);
+        localStorage.setItem('customVocab', JSON.stringify(customData));
+    }
+
+    // 儲存最新的狀態
+    if (typeof saveState === 'function') saveState();
+    else if (typeof saveData === 'function') saveData();
+    
+    // 重新載入數據並重新整理網頁上的各個下拉選單與列表
+    if (typeof loadData === 'function') loadData();
+    
+    // 將主介面的篩選器切換回首頁預設值（例如 "all" 全部單字）
+    const pageFilter = document.getElementById('page-filter');
+    if (pageFilter) pageFilter.value = 'all';
+    
+    // 刷新管理面板介面
+    initCategoryManager();
+    if (typeof filterData === 'function') filterData(true);
+    
+    alert(`成功刪除分類「${selectedCat}」及其內部的 ${wordCount} 個單字！`);
+}
     // --- 管理功能 ---
     function addCustomWord() {
         const wInput = document.getElementById('new-word');
