@@ -281,6 +281,36 @@
         .bulk-import-btn { background: var(--primary) !important; border-radius: 12px; padding: 11px 22px; box-shadow: 0 10px 22px rgba(37, 99, 235, .22); }
         .big-play-btn:hover { transform: translateY(-1px) scale(1.03); }
         @media (max-width: 640px) { body { padding: 14px; } #list-view { grid-template-columns: 1fr; } .quiz-options { grid-template-columns: 1fr; } .bulk-actions { justify-content: stretch; } .bulk-actions button { flex: 1; } }
+
+        /* ===== 新版篩選 UI ===== */
+        .fq-btn {
+            padding: 6px 14px; border-radius: 20px; border: 2px solid transparent;
+            font-size: 13px; font-weight: 600; cursor: pointer; 
+            background: #f1f5f9; color: #475569;
+            transition: all .18s ease;
+        }
+        .fq-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        .fq-btn.fq-active { background: var(--primary) !important; color: white !important; border-color: var(--primary) !important; box-shadow: 0 6px 16px rgba(37,99,235,.25); }
+        .fq-btn.fq-star.fq-active { background: var(--secondary) !important; border-color: var(--secondary) !important; box-shadow: 0 6px 16px rgba(245,158,11,.28); }
+        .fq-btn.fq-heart.fq-active { background: var(--heart) !important; border-color: var(--heart) !important; box-shadow: 0 6px 16px rgba(225,29,72,.25); }
+        .fq-btn.fq-both-btn.fq-active { background: linear-gradient(90deg, var(--secondary), var(--heart)) !important; border-color: var(--heart) !important; color: white !important; }
+        .fq-btn.fq-wrong.fq-active { background: var(--danger) !important; border-color: var(--danger) !important; }
+        .fq-btn.fq-custom.fq-active { background: #7c3aed !important; border-color: #7c3aed !important; }
+
+        /* 分類 checkbox 標籤 */
+        .cat-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 13px; border-radius: 20px; 
+            border: 2px solid #e2e8f0; background: white;
+            font-size: 13px; color: #475569; font-weight: 500;
+            cursor: pointer; transition: all .18s ease; user-select: none;
+            outline: none; font-family: inherit; line-height: 1.4;
+        }
+        .cat-chip:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+        /* cat-chip 改用 button，不需要 checkbox */
+        .cat-chip.selected { background: #eff6ff; border-color: var(--primary); color: var(--primary); font-weight: 700; }
+        .cat-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; flex-shrink:0; transition: .18s; }
+        .cat-chip.selected .chip-dot { background: var(--primary); }
     </style>
 </head>
 <body>
@@ -297,25 +327,49 @@
         <button class="tab-btn manage" onclick="switchMode('manage')" id="tab-manage">⚙️ 資料管理</button>
     </div>
 
-    <div class="filter-section" id="filter-bar">
-        <div>
-            <label>篩選範圍：</label>
-            <select id="page-filter" onchange="filterData()">
-    <option value="all">全部單字</option>
-    <option value="custom">我新增的單字</option>
-    <option value="hearted">❤️ 愛心</option> <option value="marked">⭐ 標記</option>
-    <option value="wrong">❌ 答錯的題目</option>
-                <option disabled>──────────</option>
-                <option value="Page 1">Page 1</option>
-                <option value="Page 2">Page 2</option>
-                <option value="Page 3">Page 3</option>
-                <option value="Page 5">Page 5</option>
-                <option value="Page 6">Page 6</option>
-                <option value="Page 7">Page 7</option>
-                <optgroup label="我的分類" id="category-options"></optgroup>
-            </select>
+    <!-- 新版篩選列 -->
+    <div class="filter-section" id="filter-bar" style="flex-direction:column; align-items:stretch; gap:12px; padding:16px 20px;">
+        
+        <!-- 第一行：特殊篩選 + 統計 -->
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span style="font-size:14px; color:#64748b; font-weight:600;">快速篩選：</span>
+                <button id="fq-all" class="fq-btn fq-active" onclick="setQuickFilter('all')">📚 全部</button>
+                <button id="fq-marked" class="fq-btn fq-star" onclick="setQuickFilter('marked')">⭐ 星星</button>
+                <button id="fq-hearted" class="fq-btn fq-heart" onclick="setQuickFilter('hearted')">❤️ 愛心</button>
+                <button id="fq-both" class="fq-btn fq-both-btn" onclick="setQuickFilter('both')">⭐❤️ 兩者</button>
+                <button id="fq-wrong" class="fq-btn fq-wrong" onclick="setQuickFilter('wrong')">❌ 答錯</button>
+                <button id="fq-custom" class="fq-btn fq-custom" onclick="setQuickFilter('custom')">✏️ 我新增的</button>
+            </div>
+            <div id="stats-info" style="font-size:13px; color:#64748b; font-weight:500; background:#f1f5f9; padding:5px 12px; border-radius:20px; white-space:nowrap;"></div>
         </div>
-        <div id="stats-info" style="font-size:14px; color:#666;"></div>
+
+        <!-- 第二行：分類多選區 -->
+        <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+                <span style="font-size:14px; color:#64748b; font-weight:600;">分類篩選：</span>
+                <button onclick="selectAllCategories()" style="font-size:12px; padding:3px 10px; border:1px solid #cbd5e1; border-radius:12px; background:white; color:#475569; cursor:pointer;">全選</button>
+                <button onclick="clearAllCategories()" style="font-size:12px; padding:3px 10px; border:1px solid #cbd5e1; border-radius:12px; background:white; color:#475569; cursor:pointer;">清除</button>
+                <span style="font-size:12px; color:#94a3b8; margin-left:4px;">（可多選，與上方快速篩選疊加）</span>
+            </div>
+            <div id="category-checkboxes" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+        </div>
+
+        <!-- 隱藏的 select 供相容舊邏輯用 -->
+        <select id="page-filter" style="display:none;" onchange="filterData()">
+            <option value="all">全部單字</option>
+            <option value="custom">我新增的單字</option>
+            <option value="hearted">❤️ 愛心</option>
+            <option value="marked">⭐ 標記</option>
+            <option value="wrong">❌ 答錯的題目</option>
+            <option value="Page 1">Page 1</option>
+            <option value="Page 2">Page 2</option>
+            <option value="Page 3">Page 3</option>
+            <option value="Page 5">Page 5</option>
+            <option value="Page 6">Page 6</option>
+            <option value="Page 7">Page 7</option>
+            <optgroup label="我的分類" id="category-options"></optgroup>
+        </select>
     </div>
 
     <!-- 1. 列表模式 -->
@@ -602,6 +656,7 @@ function loadData() {
     }));
 
     refreshCategoryOptions();
+    buildCategoryChips();
 }
 
 function refreshCategoryOptions() {
@@ -625,6 +680,8 @@ function refreshCategoryOptions() {
     function saveState() {
         const state = {
             filter: document.getElementById('page-filter').value,
+            quickFilter: activeQuickFilter,
+            selectedCats: [...selectedCategories],
             mode: document.querySelector('.tab-btn.active') ? document.querySelector('.tab-btn.active').id : 'tab-list',
             cardIdx: currentIndex,
             spellIdx: currentSpellIndex,
@@ -637,7 +694,18 @@ function refreshCategoryOptions() {
         const saved = localStorage.getItem('appState');
         if (saved) {
             const state = JSON.parse(saved);
-            document.getElementById('page-filter').value = state.filter;
+            // 恢復快速篩選
+            if (state.quickFilter) {
+                activeQuickFilter = state.quickFilter;
+                document.querySelectorAll('.fq-btn').forEach(b => b.classList.remove('fq-active'));
+                const btn = document.getElementById('fq-' + activeQuickFilter);
+                if (btn) btn.classList.add('fq-active');
+            }
+            // 恢復已選分類
+            if (state.selectedCats) {
+                selectedCategories = new Set(state.selectedCats);
+                buildCategoryChips();
+            }
             filterData(false);
             
             currentIndex = (state.cardIdx < currentFiltered.length) ? state.cardIdx : 0;
@@ -671,7 +739,7 @@ function refreshCategoryOptions() {
         ['list-view', 'learning-view', 'flashcard-view', 'quiz-view', 'spelling-view', 'manage-view'].forEach(id => 
             document.getElementById(id).style.display = 'none'
         );
-        document.getElementById('filter-bar').style.display = (mode === 'manage') ? 'none' : 'flex';
+        document.getElementById('filter-bar').style.display = (mode === 'list') ? 'flex' : 'none';
 
         if (mode === 'list') { document.getElementById('list-view').style.display = 'grid'; renderList(); }
         else if (mode === 'learning') { document.getElementById('learning-view').style.display = 'block'; updateLearningCard(); updateJumpMenus(); }
@@ -690,23 +758,103 @@ function refreshCategoryOptions() {
     }
     }
 
+    // ===== 新版篩選狀態 =====
+    let activeQuickFilter = 'all';      // 'all' | 'marked' | 'hearted' | 'both' | 'wrong' | 'custom'
+    let selectedCategories = new Set(); // 空 = 全部分類
+
+    function setQuickFilter(type) {
+        activeQuickFilter = type;
+        // 更新按鈕樣式
+        document.querySelectorAll('.fq-btn').forEach(b => b.classList.remove('fq-active'));
+        const btn = document.getElementById('fq-' + type);
+        if (btn) btn.classList.add('fq-active');
+        filterData(true);
+    }
+
+    function buildCategoryChips() {
+        const container = document.getElementById('category-checkboxes');
+        if (!container) return;
+
+        const defaultPages = ['Page 1','Page 2','Page 3','Page 5','Page 6','Page 7'];
+        const customCats = [...new Set(
+            fullData.filter(i => i.isCustom).map(i => i.p).filter(Boolean)
+        )];
+        const allCats = [...defaultPages, ...customCats];
+
+        // 用 createElement 避免 label+checkbox 雙重觸發問題
+        container.innerHTML = '';
+        allCats.forEach(function(cat) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cat-chip' + (selectedCategories.has(cat) ? ' selected' : '');
+            const dot = document.createElement('span');
+            dot.className = 'chip-dot';
+            btn.appendChild(dot);
+            btn.appendChild(document.createTextNode(' ' + cat));
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (selectedCategories.has(cat)) {
+                    selectedCategories.delete(cat);
+                    btn.classList.remove('selected');
+                } else {
+                    selectedCategories.add(cat);
+                    btn.classList.add('selected');
+                }
+                filterData(true);
+            });
+            container.appendChild(btn);
+        });
+    }
+
+    function selectAllCategories() {
+        const defaultPages = ['Page 1','Page 2','Page 3','Page 5','Page 6','Page 7'];
+        const customCats = [...new Set(fullData.filter(i => i.isCustom).map(i => i.p).filter(Boolean))];
+        [...defaultPages, ...customCats].forEach(c => selectedCategories.add(c));
+        buildCategoryChips();
+        filterData(true);
+    }
+
+    function clearAllCategories() {
+        selectedCategories.clear();
+        buildCategoryChips();
+        filterData(true);
+    }
+
     function filterData(resetIndex = true) {
-    const filter = document.getElementById('page-filter').value;
-    if (filter === 'all') currentFiltered = fullData;
-    else if (filter === 'marked') currentFiltered = fullData.filter(i => i.marked);
-    else if (filter === 'hearted') currentFiltered = fullData.filter(i => i.hearted); // 👈 加入這一行
-    else if (filter === 'wrong') currentFiltered = Array.from(wrongAnswers);
-    else if (filter === 'custom') currentFiltered = fullData.filter(i => i.isCustom);
-    else currentFiltered = fullData.filter(i => i.p === filter);
-        
+        // Step 1: 快速篩選
+        let base;
+        if (activeQuickFilter === 'all')      base = fullData;
+        else if (activeQuickFilter === 'marked')  base = fullData.filter(i => i.marked);
+        else if (activeQuickFilter === 'hearted') base = fullData.filter(i => i.hearted);
+        else if (activeQuickFilter === 'both')    base = fullData.filter(i => i.marked && i.hearted);
+        else if (activeQuickFilter === 'wrong')   base = Array.from(wrongAnswers);
+        else if (activeQuickFilter === 'custom')  base = fullData.filter(i => i.isCustom);
+        else base = fullData;
+
+        // Step 2: 分類多選疊加（選了分類才篩，沒選就全部）
+        if (selectedCategories.size > 0 && activeQuickFilter !== 'wrong') {
+            base = base.filter(i => selectedCategories.has(i.p));
+        }
+
+        currentFiltered = base;
+
+        // 同步舊的 select（給 saveState 讀取用）
+        document.getElementById('page-filter').value = activeQuickFilter === 'all' ? 'all' : activeQuickFilter;
+
         if (resetIndex) {
             currentIndex = 0;
             currentSpellIndex = 0;
         }
-        
-        document.getElementById('stats-info').innerText = `共 ${currentFiltered.length} 個單字`;
+
+        // 統計標籤
+        const total = currentFiltered.length;
+        const starCount = currentFiltered.filter(i => i.marked).length;
+        const heartCount = currentFiltered.filter(i => i.hearted).length;
+        let statsText = `共 ${total} 個單字`;
+        if (starCount > 0 || heartCount > 0) statsText += ` ｜ ⭐${starCount} ❤️${heartCount}`;
+        document.getElementById('stats-info').innerText = statsText;
+
         if(document.getElementById('list-view').style.display !== 'none') renderList();
-        
         updateJumpMenus();
         saveState();
     }
@@ -924,6 +1072,7 @@ function deleteEntireCategory() {
     
     // 刷新管理面板介面
     initCategoryManager();
+    if (typeof buildCategoryChips === 'function') buildCategoryChips();
     if (typeof filterData === 'function') filterData(true);
     
     alert(`成功刪除分類「${selectedCat}」及其內部的 ${wordCount} 個單字！`);
@@ -995,6 +1144,7 @@ function batchImport() {
             
             // 👇 如果有寫自訂範圍管理面板的重新整理，可在這裡刷新它
             if (typeof initCategoryManager === 'function') initCategoryManager();
+            if (typeof buildCategoryChips === 'function') buildCategoryChips();
             
             alert(`成功匯入 ${addedCount} 個單字到「${category}」！`);
         } else { alert("沒有匯入任何單字"); }
