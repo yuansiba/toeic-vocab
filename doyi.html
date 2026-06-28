@@ -4,6 +4,141 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>多益單字</title>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlY3HyJM2-DN9y6cdGRrz5saZl6a3NeDM",
+            authDomain: "doyi-80d8e.firebaseapp.com",
+            projectId: "doyi-80d8e",
+            storageBucket: "doyi-80d8e.firebasestorage.app",
+            messagingSenderId: "456609751811",
+            appId: "1:456609751811:web:f601fa6c1c05f49f7b3f36"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        let _uid = null;
+
+        // 顯示同步狀態
+        function setSyncStatus(msg, color = '#64748b') {
+            const el = document.getElementById('sync-status');
+            if (el) { el.innerText = msg; el.style.color = color; }
+        }
+
+        // 更新登入按鈕 UI
+        function updateAuthUI(user) {
+            const loginBtn = document.getElementById('google-login-btn');
+            const logoutBtn = document.getElementById('google-logout-btn');
+            const userInfo = document.getElementById('user-info');
+            if (!loginBtn) return;
+            if (user) {
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-flex';
+                if (userInfo) userInfo.innerText = user.displayName || user.email || '';
+            } else {
+                loginBtn.style.display = 'inline-flex';
+                logoutBtn.style.display = 'none';
+                if (userInfo) userInfo.innerText = '';
+            }
+        }
+
+        // 從 Firestore 讀取資料
+        async function loadFromFirestore(uid) {
+            setSyncStatus('☁️ 雲端同步中...');
+            const docRef = doc(db, 'users', uid);
+            try {
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    if (data.customVocab !== undefined)
+                        localStorage.setItem('customVocab', JSON.stringify(data.customVocab));
+                    if (data.markedWords !== undefined)
+                        localStorage.setItem('markedWords', JSON.stringify(data.markedWords));
+                    if (data.heartedWords !== undefined)
+                        localStorage.setItem('heartedWords', JSON.stringify(data.heartedWords));
+                    if (data.appState !== undefined)
+                        localStorage.setItem('appState', JSON.stringify(data.appState));
+                    setSyncStatus('✅ 已同步', '#16a34a');
+                } else {
+                    setSyncStatus('🆕 第一次登入，資料將自動上傳', '#f59e0b');
+                }
+            } catch(e) {
+                setSyncStatus('❌ 同步失敗（離線模式）', '#dc2626');
+                console.error('Firestore read error:', e);
+            }
+
+            window._firebaseReady = true;
+            window._firebaseUid = uid;
+            if (window._onFirebaseReady) window._onFirebaseReady();
+        }
+
+        // 寫入 Firestore（防抖）
+        let _writeTimer = null;
+        window._saveToFirestore = function(key, value) {
+            if (!_uid) return;
+            setSyncStatus('💾 儲存中...', '#f59e0b');
+            clearTimeout(_writeTimer);
+            _writeTimer = setTimeout(async () => {
+                const docRef = doc(db, 'users', _uid);
+                const payload = {};
+                ['customVocab', 'markedWords', 'heartedWords', 'appState'].forEach(k => {
+                    const raw = localStorage.getItem(k);
+                    try { payload[k] = raw ? JSON.parse(raw) : null; } catch(e) { payload[k] = null; }
+                });
+                try {
+                    await setDoc(docRef, payload, { merge: true });
+                    setSyncStatus('✅ 已同步', '#16a34a');
+                } catch(e) {
+                    setSyncStatus('❌ 儲存失敗', '#dc2626');
+                    console.error('Firestore write error:', e);
+                }
+            }, 800);
+        };
+
+        // Google 登入
+        window._googleLogin = async function() {
+            try {
+                setSyncStatus('🔐 登入中...');
+                await signInWithPopup(auth, provider);
+            } catch(e) {
+                setSyncStatus('❌ 登入失敗', '#dc2626');
+                console.error('Google login error:', e);
+            }
+        };
+
+        // 登出
+        window._googleLogout = async function() {
+            if (!confirm('確定要登出嗎？')) return;
+            await signOut(auth);
+            _uid = null;
+            setSyncStatus('👋 已登出', '#64748b');
+            updateAuthUI(null);
+            // 清除本機資料，重新載入頁面
+            ['customVocab','markedWords','heartedWords','appState'].forEach(k => localStorage.removeItem(k));
+            location.reload();
+        };
+
+        // 監聽登入狀態
+        onAuthStateChanged(auth, async (user) => {
+            updateAuthUI(user);
+            if (user) {
+                _uid = user.uid;
+                await loadFromFirestore(_uid);
+            } else {
+                // 未登入：讓 app 照常跑（純 localStorage）
+                setSyncStatus('🔒 未登入（資料僅存本機）', '#94a3b8');
+                window._firebaseReady = true;
+                if (window._onFirebaseReady) window._onFirebaseReady();
+            }
+        });
+    </script>
     <style>
         :root {
             --primary: #4a90e2;
@@ -317,6 +452,29 @@
 
 <div class="container">
     <h1>🚀 多益單字全方位訓練</h1>
+    <div style="text-align:center; margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap;">
+        <!-- 登入按鈕 -->
+        <button id="google-login-btn" onclick="window._googleLogin()" style="
+            display:inline-flex; align-items:center; gap:8px;
+            background:white; border:1.5px solid #dadce0; border-radius:24px;
+            padding:7px 18px; font-size:14px; font-weight:600; color:#3c4043;
+            cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,0.1);
+            transition: box-shadow .2s;">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+            使用 Google 登入
+        </button>
+        <!-- 已登入狀態 -->
+        <div id="google-logout-btn" style="display:none; align-items:center; gap:8px;">
+            <span id="user-info" style="font-size:13px; color:#475569; font-weight:500;"></span>
+            <button onclick="window._googleLogout()" style="
+                background:#fee2e2; border:1px solid #fca5a5; border-radius:20px;
+                padding:5px 14px; font-size:13px; color:#dc2626; cursor:pointer; font-weight:600;">
+                登出
+            </button>
+        </div>
+        <!-- 同步狀態 -->
+        <span id="sync-status" style="font-size:13px; color:#64748b; background:#f1f5f9; padding:4px 14px; border-radius:20px; display:inline-block;">⏳ 連接雲端中...</span>
+    </div>
 
     <div class="tabs">
         <button class="tab-btn active" onclick="switchMode('list')" id="tab-list">📚 單字清單</button>
@@ -631,15 +789,31 @@ function playSound(text) {
 }
 
 
-    // 初始化
-    window.onload = () => {
+    // 初始化（等 Firebase 就緒後再執行）
+    function appInit() {
         loadData();
         loadSavedState();
         initCategoryManager();
-        
         document.getElementById("spell-input").addEventListener("keypress", function(event) {
             if (event.key === "Enter") checkSpelling();
         });
+    }
+
+    window.onload = () => {
+        if (window._firebaseReady) {
+            appInit();
+        } else {
+            // Firebase 尚未就緒，等它通知
+            window._onFirebaseReady = appInit;
+            // 最多等 5 秒，超時就直接用 localStorage 跑
+            setTimeout(() => {
+                if (!window._firebaseReady) {
+                    console.warn('Firebase timeout, running in offline mode');
+                    window._firebaseReady = true;
+                    appInit();
+                }
+            }, 5000);
+        }
     };
 
 function loadData() {
@@ -703,6 +877,7 @@ function refreshCategoryOptions() {
             spellMode: spellMode
         };
         localStorage.setItem('appState', JSON.stringify(state));
+        if (window._saveToFirestore) window._saveToFirestore('appState', state);
     }
 
     function loadSavedState() {
@@ -944,8 +1119,9 @@ function refreshCategoryOptions() {
         markedSet.delete(item.w);
     }
 
-    // 存進 localStorage
+    // 存進 localStorage + Firebase
     localStorage.setItem('markedWords', JSON.stringify([...markedSet]));
+    if (window._saveToFirestore) window._saveToFirestore('markedWords', [...markedSet]);
 
     renderList();
     saveState();
@@ -962,6 +1138,7 @@ function toggleHeart(index) {
     }
 
     localStorage.setItem('heartedWords', JSON.stringify([...heartSet]));
+    if (window._saveToFirestore) window._saveToFirestore('heartedWords', [...heartSet]);
     renderList();
     saveState();
 }
@@ -1021,6 +1198,7 @@ function batchAddToExistingCategory() {
 
     if (addedCount > 0) {
         localStorage.setItem('customVocab', JSON.stringify(customData));
+        if (window._saveToFirestore) window._saveToFirestore('customVocab', customData);
         loadData();
         filterData(false);
         initCategoryManager();
@@ -1128,6 +1306,7 @@ function deleteEntireCategory() {
     if (typeof customData !== 'undefined') {
         customData = customData.filter(item => item.p !== selectedCat && item.cat !== selectedCat);
         localStorage.setItem('customVocab', JSON.stringify(customData));
+        if (window._saveToFirestore) window._saveToFirestore('customVocab', customData);
     }
 
     // 儲存最新的狀態
@@ -1162,6 +1341,7 @@ function deleteEntireCategory() {
         const newItem = { p: cat, cat: cat, w: w, d: d };
         customData.push(newItem);
         localStorage.setItem('customVocab', JSON.stringify(customData));
+        if (window._saveToFirestore) window._saveToFirestore('customVocab', customData);
         wInput.value = ''; dInput.value = ''; wInput.focus();
         loadData(); renderCustomList(); filterData(false); alert(`成功加入: ${w}`);
     }
@@ -1206,6 +1386,7 @@ function batchImport() {
         });
         if (addedCount > 0) {
             localStorage.setItem('customVocab', JSON.stringify(customData));
+            if (window._saveToFirestore) window._saveToFirestore('customVocab', customData);
             loadData();
             renderCustomList();
             document.getElementById('bulk-input').value = '';
@@ -1232,11 +1413,13 @@ function batchImport() {
         if(!confirm(`確定要刪除 "${word}" 嗎？`)) return;
         customData = customData.filter(i => i.w !== word);
         localStorage.setItem('customVocab', JSON.stringify(customData));
+        if (window._saveToFirestore) window._saveToFirestore('customVocab', customData);
         loadData(); renderCustomList(); filterData(false);
     }
     function clearCustomWords() {
         if(!confirm("確定要刪除所有您新增的單字嗎？")) return;
         localStorage.removeItem('customVocab');
+        if (window._saveToFirestore) window._saveToFirestore('customVocab', []);
         customData = [];
         loadData(); renderCustomList(); filterData(false); alert("已清除");
     }
