@@ -83,12 +83,14 @@
         let _writeTimer = null;
         window._saveToFirestore = function(key, value) {
             if (!_uid) return;
+            // appState（卡片位置）完全不需要同步
+            if (key === 'appState') return;
             setSyncStatus('💾 儲存中...', '#f59e0b');
             clearTimeout(_writeTimer);
             _writeTimer = setTimeout(async () => {
                 const docRef = doc(db, 'users', _uid);
                 const payload = {};
-                ['customVocab', 'markedWords', 'heartedWords', 'appState'].forEach(k => {
+                ['customVocab', 'markedWords', 'heartedWords'].forEach(k => {
                     const raw = localStorage.getItem(k);
                     try { payload[k] = raw ? JSON.parse(raw) : null; } catch(e) { payload[k] = null; }
                 });
@@ -99,7 +101,7 @@
                     setSyncStatus('❌ 儲存失敗', '#dc2626');
                     console.error('Firestore write error:', e);
                 }
-            }, 800);
+            }, 1000);
         };
 
         // Google 登入
