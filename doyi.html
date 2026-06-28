@@ -110,7 +110,6 @@
 .learn-flip {
     position: relative;
     width: 100%;
-    min-height: 220px;
     transform-style: preserve-3d;
     transition: transform 0.6s;
     cursor: pointer;
@@ -120,9 +119,10 @@
     transform: rotateY(180deg);
 }
 
-.learn-face {
-    position: absolute;
-    inset: 0;
+/* 正面：用正常流撐高度 */
+.learn-face.learn-front {
+    position: relative;
+    min-height: 220px;
     backface-visibility: hidden;
     display: flex;
     flex-direction: column;
@@ -130,9 +130,21 @@
     align-items: center;
     padding: 20px;
     box-sizing: border-box;
+    width: 100%;
 }
 
-.learn-back {
+/* 背面：absolute 疊在上面並翻轉 */
+.learn-face.learn-back {
+    position: absolute;
+    inset: 0;
+    min-height: 220px;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
     transform: rotateY(180deg);
 }
 
@@ -145,6 +157,58 @@
 /* 避免點到按鈕也翻卡（按鈕仍可點） */
 .learning-card button { cursor: pointer; }
 
+
+        /* ===== 出題重點浮動面板（卡片右側，不影響卡片位置） ===== */
+        #learn-card-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        #keypoint-panel {
+            display: none;
+            position: absolute;
+            left: calc(50% + 290px); /* 卡片右邊緣外側，留間距 */
+            top: 0;
+            width: 210px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(15,23,42,0.10);
+            padding: 14px 16px;
+            text-align: left;
+            z-index: 10;
+        }
+        #keypoint-panel.visible { display: block; }
+        .kp-header {
+            font-size: 13px;
+            font-weight: 800;
+            color: #1e293b;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 7px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .kp-row {
+            display: flex;
+            gap: 7px;
+            margin-bottom: 9px;
+            font-size: 13px;
+            line-height: 1.55;
+            align-items: flex-start;
+        }
+        .kp-tag {
+            background: #1e3a5f;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 5px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .kp-text { color: #334155; flex: 1; }
 
         /* 3. 發音練習 (翻卡) */
         #flashcard-view { display: none; text-align: center; perspective: 1000px; }
@@ -382,6 +446,7 @@
             <select id="learning-jump" class="jump-select"></select>
         </div>
 
+<div id="learn-card-wrapper">
 <div class="learning-card" id="learn-card-container" onclick="toggleLearnFlip()">
     <div id="card-stars-display" style="position: absolute; top: 16px; left: 18px; font-size: 18px; color: var(--secondary); font-weight: bold; z-index: 5;"></div>
     <div class="card-mark-controls">
@@ -416,6 +481,12 @@
     <button class="big-play-btn" onclick="event.stopPropagation(); speakCurrentCard();">🔊</button>
 </div>
 
+<!-- 出題重點浮動面板 -->
+<div id="keypoint-panel">
+    <div class="kp-header">📌 出題重點</div>
+    <div id="keypoint-rows"></div>
+</div>
+</div><!-- end learn-card-wrapper -->
 
         <div class="nav-controls">
             <button class="nav-btn" onclick="prevCard()">⬅️ 上一個</button>
@@ -502,7 +573,7 @@
         <h3 style="margin-bottom:10px;">📦 批量匯入</h3>
         <p style="font-size:13px; color:#666; margin:0 0 12px 0;">為這批單字輸入分類名稱，再貼上清單；每行格式例如：apple*** 蘋果</p>
         <input type="text" id="bulk-category" class="bulk-category-input" placeholder="自訂分類名稱（例如：面試單字、商務英文）" />
-        <textarea id="bulk-input" class="bulk-textarea" placeholder="• apple*** 蘋果&#10;• banana 香蕉"></textarea>
+        <textarea id="bulk-input" class="bulk-textarea" placeholder="apple*** 蘋果 I have an apple. 我有一顆蘋果。&#10;出題重點:&#10;文法 an apple，可數名詞，前加不定冠詞 an。&#10;同義詞 可替換成 fruit。&#10;&#10;banana 香蕉&#10;collaborate 合作"></textarea>
         <div class="bulk-actions">
             <button onclick="document.getElementById('bulk-input').value=''" class="nav-btn">清空輸入</button>
             <button onclick="batchImport()" class="add-btn bulk-import-btn">批量匯入</button>
@@ -516,7 +587,7 @@
         <select id="add-to-cat-select" style="padding:10px; border-radius:10px; border:1px solid var(--border); font-size:14px; background:white; width:100%; margin-bottom:10px; box-sizing:border-box;">
             <option value="">-- 請選擇要加入的分類 --</option>
         </select>
-        <textarea id="add-to-cat-bulk" class="bulk-textarea" placeholder="• efficient*** 有效率的&#10;• collaborate 合作&#10;• implement 實施"></textarea>
+        <textarea id="add-to-cat-bulk" class="bulk-textarea" placeholder="efficient*** 有效率的 This is an efficient method. 這是一個有效率的方法。&#10;出題重點:&#10;文法 efficient 為形容詞，修飾名詞。&#10;同義詞 可替換成 effective。&#10;&#10;collaborate 合作"></textarea>
         <div class="bulk-actions">
             <button onclick="document.getElementById('add-to-cat-bulk').value=''" class="nav-btn">清空輸入</button>
             <button onclick="batchAddToExistingCategory()" class="add-btn bulk-import-btn">批量加入</button>
@@ -920,11 +991,13 @@ function refreshCategoryOptions() {
         if (currentFiltered.length === 0) { container.innerHTML = "<p style='grid-column:1/-1; text-align:center; padding:20px;'>沒有符合的單字</p>"; return; }
         container.innerHTML = currentFiltered.map((item) => {
             const originalIndex = fullData.indexOf(item);
+            // 只取中文解釋：截掉第一個英文句子（含「I 」開頭）之後的所有內容
+            const displayDef = (item.d || '').replace(/\s+[A-Z][\s\S]*$/, '').trim();
             return `
             <div class="vocab-item ${item.marked ? 'marked' : ''} ${item.hearted ? 'hearted' : ''} ${item.isCustom ? 'custom' : ''}">
                 <div class="word-info">
                     <b>${item.w} ${item.isCustom ? `<span style="font-size:12px; color:#9b59b6;">(${item.cat || item.p || '自訂'})</span>` : ''}</b>
-                    <span>${item.d}</span>
+                    <span>${displayDef}</span>
                 </div>
                 <div class="mark-actions">
                     <button class="star-btn" title="加入星星" onclick="toggleMark(${originalIndex})">${item.marked ? '★' : '☆'}</button>
@@ -987,6 +1060,113 @@ function initCategoryManager() {
     }
 }
 
+// ========= 共用：解析批量輸入文字（支援例句、例句翻譯、出題重點）=========
+// 格式：
+//   apple*** 蘋果 I have an apple. 我有一顆蘋果。
+//   出題重點:
+//   文法 an apple，可數名詞，前面要加不定冠詞 an。
+//   同義詞 apple 可替換成 fruit。
+//
+// 規則：
+//   - 單字行：第一個英文 token（可帶 * 星等），接著中文，後面可選填英文例句+中文翻譯
+//   - 「出題重點:」之後每行都是 "標籤 內容"，直到遇到下一個新單字行為止
+function parseBulkText(text, category) {
+    const results = [];
+    // 先把全文切成「單字區塊」
+    // 每當遇到「以英文開頭的行（非出題重點行）」就開新區塊
+    const rawLines = text.split('\n');
+    let blocks = []; // [{wordLine, keypointLines:[]}]
+    let cur = null;
+    let inKeypoint = false;
+
+    rawLines.forEach(raw => {
+        const line = raw.trim();
+        if (!line) return;
+
+        // 是「出題重點:」開頭的行
+        if (/^出題重點[：:]/i.test(line)) {
+            inKeypoint = true;
+            return;
+        }
+
+        // 是否為新的單字行（以英文字母開頭，不是純中文行）
+        const isWordLine = /^[a-zA-Z\s•\-\*0-9\.]+/.test(line) && /[a-zA-Z]/.test(line[0] || '');
+
+        if (isWordLine && !inKeypoint) {
+            // 開新區塊
+            cur = { wordLine: line, keypointLines: [] };
+            inKeypoint = false;
+            blocks.push(cur);
+        } else if (inKeypoint && cur) {
+            cur.keypointLines.push(line);
+        }
+        // 若 inKeypoint 但遇到新單字行
+        if (isWordLine && inKeypoint) {
+            inKeypoint = false;
+            cur = { wordLine: line, keypointLines: [] };
+            blocks.push(cur);
+        }
+    });
+
+    blocks.forEach(block => {
+        let line = block.wordLine.replace(/^[•\-\*0-9\.]+\s*/, '').trim();
+
+        // 解析：英文單字（含星等）+ 中文 + 可選例句 + 可選例句翻譯
+        // 格式：word[***] 中文 [English sentence. 中文句。]
+        const wordMatch = line.match(/^([a-zA-Z][a-zA-Z\s\-\/\(\)\*]*?)(\*{1,3})?\s+(.+)$/);
+        if (!wordMatch) return;
+
+        let w = wordMatch[1].trim();
+        const starStr = wordMatch[2] || '';
+        const rest = wordMatch[3].trim();
+
+        let starCount = starStr.length; // 0,1,2,3
+
+        // rest 裡面繼續解析：中文 + 英文例句 + 中文翻譯
+        // 中文部分：到第一個英文大寫字母開頭（或字串結束）為止
+        // 方式：找第一個英文大寫字母 + 後接小寫/空格（像句子開頭）的位置
+        let d = '', example = '', exampleZh = '';
+        // 找第一個英文句子的開始位置：空格後接大寫字母（含單獨的 I）
+        const sentenceStart = rest.search(/\s[A-Z]([a-z\s]|$)/);
+        if (sentenceStart !== -1) {
+            d = rest.slice(0, sentenceStart).trim();
+            const afterDef = rest.slice(sentenceStart).trim();
+            // 再切英文例句 vs 中文翻譯
+            // 找第一個中文字的位置（在句尾）
+            const zhStart = afterDef.search(/[\u4e00-\u9fff]/);
+            if (zhStart !== -1) {
+                // 往前找斷點（通常是句號或空格）
+                const engPart = afterDef.slice(0, zhStart).trim().replace(/\s+$/, '');
+                example = engPart;
+                exampleZh = afterDef.slice(zhStart).trim();
+            } else {
+                example = afterDef;
+            }
+        } else {
+            d = rest;
+        }
+
+        // 解析出題重點
+        const keypoints = block.keypointLines.map(kpLine => {
+            const spIdx = kpLine.indexOf(' ');
+            if (spIdx === -1) return null;
+            return { tag: kpLine.slice(0, spIdx).trim(), text: kpLine.slice(spIdx + 1).trim() };
+        }).filter(Boolean);
+
+        results.push({
+            p: category, cat: category,
+            w, d,
+            stars: starCount,
+            example: example || undefined,
+            exampleZh: exampleZh || undefined,
+            keypoints: keypoints.length > 0 ? keypoints : undefined,
+            isCustom: true
+        });
+    });
+
+    return results;
+}
+
 // ✅ 批量加入單字到已有分類（格式與批量匯入相同）
 function batchAddToExistingCategory() {
     const cat = document.getElementById('add-to-cat-select').value.trim();
@@ -996,26 +1176,14 @@ function batchAddToExistingCategory() {
     if (!cat) { feedback.style.color = '#dc2626'; feedback.innerText = '⚠️ 請先選擇分類'; return; }
     if (!text.trim()) { feedback.style.color = '#dc2626'; feedback.innerText = '⚠️ 請輸入單字清單'; return; }
 
-    const lines = text.split('\n');
-    let addedCount = 0;
-    let skippedCount = 0;
-    lines.forEach(line => {
-        line = line.trim().replace(/^[•\-\*0-9\.]+\s*/, '');
-        const match = line.match(/^([a-zA-Z\s\-\/\(\)\*]+?)[\s\t\:\-]+(.+)$/);
-        if (match && match[1] && match[2]) {
-            let w = match[1].trim();
-            const d = match[2].trim();
-            let starCount = 0;
-            if (w.endsWith("***"))      { starCount = 3; w = w.slice(0, -3).trim(); }
-            else if (w.endsWith("**")) { starCount = 2; w = w.slice(0, -2).trim(); }
-            else if (w.endsWith("*"))  { starCount = 1; w = w.slice(0, -1).trim(); }
-
-            if (fullData.some(i => i.w.toLowerCase() === w.toLowerCase())) {
-                skippedCount++;
-            } else {
-                customData.push({ p: cat, cat: cat, w: w, d: d, stars: starCount, isCustom: true });
-                addedCount++;
-            }
+    const entries = parseBulkText(text, cat);
+    let addedCount = 0, skippedCount = 0;
+    entries.forEach(item => {
+        if (fullData.some(i => i.w.toLowerCase() === item.w.toLowerCase())) {
+            skippedCount++;
+        } else {
+            customData.push(item);
+            addedCount++;
         }
     });
 
@@ -1173,37 +1341,15 @@ function batchImport() {
         if (!category) { alert("請先輸入這批單字的分類名稱"); return; }
         if (!text.trim()) { alert("請輸入內容"); return; }
 
-        const lines = text.split('\n');
+        const entries = parseBulkText(text, category);
         let addedCount = 0;
-        lines.forEach(line => {
-            line = line.trim().replace(/^[•\-\*0-9\.]+\s*/, '');
-            
-            // 👇 修改這行正規表達式：在英文字元後面允許匹配包含星號 * 的標記
-            const match = line.match(/^([a-zA-Z\s\-\/\(\)\*]+?)[\s\t\:\-]+(.+)$/);
-            if (match && match[1] && match[2]) {
-                let w = match[1].trim();
-                const d = match[2].trim();
-                
-                // 👇 新增：解析星等標記 (支援 *, **, ***)
-                let starCount = 0;
-                if (w.endsWith("***")) {
-                    starCount = 3;
-                    w = w.slice(0, -3).trim(); // 移除後方的 ***，保留乾淨的單字
-                } else if (w.endsWith("**")) {
-                    starCount = 2;
-                    w = w.slice(0, -2).trim(); // 移除後方的 **
-                } else if (w.endsWith("*")) {
-                    starCount = 1;
-                    w = w.slice(0, -1).trim(); // 移除後方的 *
-                }
-
-                if (!fullData.some(i => i.w.toLowerCase() === w.toLowerCase())) {
-                    // 👇 將 stars: starCount 一併存入你的 customData 物件中
-                    customData.push({ p: category, cat: category, w: w, d: d, stars: starCount });
-                    addedCount++;
-                }
+        entries.forEach(item => {
+            if (!fullData.some(i => i.w.toLowerCase() === item.w.toLowerCase())) {
+                customData.push(item);
+                addedCount++;
             }
         });
+
         if (addedCount > 0) {
             localStorage.setItem('customVocab', JSON.stringify(customData));
             loadData();
@@ -1212,11 +1358,8 @@ function batchImport() {
             if (categoryInput) categoryInput.value = '';
             document.getElementById('page-filter').value = category;
             filterData(true);
-            
-            // 👇 如果有寫自訂範圍管理面板的重新整理，可在這裡刷新它
             if (typeof initCategoryManager === 'function') initCategoryManager();
             if (typeof buildCategoryChips === 'function') buildCategoryChips();
-            
             alert(`成功匯入 ${addedCount} 個單字到「${category}」！`);
         } else { alert("沒有匯入任何單字"); }
     }
@@ -1351,7 +1494,38 @@ if (starsDisplay) {
     else starsDisplay.innerText = ""; // 沒標示星星就不顯示
 }
         document.getElementById('learn-def').innerText = card.d;
-        fetchExampleFromNetwork(card.w);
+
+        // 例句：有存好的直接顯示，沒有才上網抓
+        if (card.example) {
+            const exEl = document.getElementById('learn-example');
+            const exZhEl = document.getElementById('learn-example-zh');
+            const speakBtn = document.getElementById('speak-example-btn');
+            exEl.innerText = card.example;
+            exEl.style.color = '#1e293b';
+            exZhEl.innerText = card.exampleZh || '';
+            currentFetchedExample = card.example;
+            if (speakBtn) {
+                speakBtn.style.display = 'inline-block';
+                speakBtn.onclick = function(e) { e.stopPropagation(); playSound(card.example); };
+            }
+        } else {
+            fetchExampleFromNetwork(card.w);
+        }
+
+        // 出題重點面板
+        const panel = document.getElementById('keypoint-panel');
+        const rows = document.getElementById('keypoint-rows');
+        if (panel && rows) {
+            if (card.keypoints && card.keypoints.length > 0) {
+                rows.innerHTML = card.keypoints.map(kp =>
+                    `<div class="kp-row"><span class="kp-tag">${kp.tag}</span><span class="kp-text">${kp.text}</span></div>`
+                ).join('');
+                panel.classList.add('visible');
+            } else {
+                panel.classList.remove('visible');
+                rows.innerHTML = '';
+            }
+        }
         document.getElementById('learn-progress').innerText = `${currentIndex + 1} / ${currentFiltered.length}`;
         const starBtn = document.getElementById('learn-star-btn');
         const heartBtn = document.getElementById('learn-heart-btn');
@@ -1698,27 +1872,13 @@ function speakCurrentSpellWord() {
 }
 
 /* =========================================================
-   ✅ Space = 發音
-   ✅ ← / → = 上一個 / 下一個
-   （只在 learning / flashcard / spelling 生效）
-   並且徹底避免「空白鍵觸發上一個點過的按鈕」
+   快捷鍵（單字卡模式）
+   ↑         = 翻面
+   ↓ / Space = 聽發音
+   ← / →     = 上一個 / 下一個
+   （拼字模式：← → 換題，Space 發音）
 ========================================================= */
 (function setupHotkeysFinal() {
-
-    function getMode() {
-        return document.querySelector('.tab-btn.active')?.id || '';
-        // tab-learning / tab-flashcard / tab-spelling ...
-    }
-
-    function isSpace(e){ return e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar'; }
-    function isLeft(e){ return e.code === 'ArrowLeft' || e.key === 'ArrowLeft'; }
-    function isRight(e){ return e.code === 'ArrowRight' || e.key === 'ArrowRight'; }
-
-    function block(e){
-        e.preventDefault();
-        e.stopPropagation();
-        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
-    }
 
     // 讓任何按鈕「不留 focus」，根治 space 會重按上一個按鈕
     document.addEventListener('pointerdown', (e) => {
@@ -1726,119 +1886,97 @@ function speakCurrentSpellWord() {
         if (btn) btn.blur();
     }, true);
 
-    // 只要你切換模式，也把 focus 清掉
     document.addEventListener('click', (e) => {
         const tab = e.target.closest?.('.tab-btn');
         if (tab) tab.blur();
     }, true);
 
-    // ✅ 用 capture 攔截（keydown + keyup 都攔），避免瀏覽器把 Space 變 click
 function handler(e){
     const mode = document.querySelector('.tab-btn.active')?.id || '';
     const inLearning = mode === 'tab-learning';
-    const inFlash = mode === 'tab-flashcard';
-    const inSpell = mode === 'tab-spelling';
-
+    const inFlash    = mode === 'tab-flashcard';
+    const inSpell    = mode === 'tab-spelling';
     if (!(inLearning || inFlash || inSpell)) return;
 
-    /* ===============================
-       ✅ M 鍵：單字卡翻卡
-    =============================== */
-    const isC = e.key === 'c' || e.key === 'C';
-    if (isC && inLearning) {
-        // 避免在輸入框時誤觸
-        const el = document.activeElement;
-        const typing = el && (
-            el.tagName === 'INPUT' ||
-            el.tagName === 'TEXTAREA' ||
-            el.isContentEditable
-        );
-        if (!typing) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+    // 輸入框中不攔截（拼字輸入框除外）
+    const el = document.activeElement;
+    const typing = el && (
+        el.tagName === 'TEXTAREA' ||
+        el.tagName === 'SELECT'   ||
+        el.isContentEditable      ||
+        (el.tagName === 'INPUT' && el.id !== 'spell-input')
+    );
+    if (typing) return;
 
-            toggleLearnFlip(); // 👈 你已經有的翻卡函式
-        }
-        return;
-    }
-
-    /* ===== 原本的 Space / ← / → 邏輯全部留著 ===== */
-
-    const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
-    const isLeft = e.code === 'ArrowLeft' || e.key === 'ArrowLeft';
+    const isUp    = e.code === 'ArrowUp'    || e.key === 'ArrowUp';
+    const isDown  = e.code === 'ArrowDown'  || e.key === 'ArrowDown';
+    const isSpace = e.code === 'Space'      || e.key === ' ' || e.key === 'Spacebar';
+    const isLeft  = e.code === 'ArrowLeft'  || e.key === 'ArrowLeft';
     const isRight = e.code === 'ArrowRight' || e.key === 'ArrowRight';
 
-    if (!(isSpace || isLeft || isRight)) return;
+    if (!(isUp || isDown || isSpace || isLeft || isRight)) return;
 
-    // 清焦點，避免 Space 觸發按鈕
-    if (document.activeElement && 
-       (document.activeElement.tagName === 'BUTTON' || document.activeElement.tagName === 'A')) {
-        document.activeElement.blur();
-    }
-    document.body?.focus({preventScroll:true});
+    // 清焦點防止 Space 觸發按鈕
+    if (el && (el.tagName === 'BUTTON' || el.tagName === 'A')) el.blur();
+    document.body?.focus({ preventScroll: true });
 
     e.preventDefault();
     e.stopPropagation();
     if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
 
-    // Space：發音
-    if (isSpace) {
-        if (inLearning || inFlash) speakCurrentCard();
-        else speakCurrentSpellWord();
+    if (inLearning) {
+        if (isUp)               toggleLearnFlip();   // ↑ 翻面
+        if (isDown || isSpace)  speakCurrentCard();  // ↓ / Space 聽發音
+        if (isLeft)             prevCard();
+        if (isRight)            nextCard();
         return;
     }
 
-    // ← →
-    if (inLearning || inFlash) {
-        if (isLeft) prevCard();
-        if (isRight) nextCard();
+    if (inFlash) {
+        if (isSpace || isDown)  speakCurrentCard();
+        if (isLeft)             prevCard();
+        if (isRight)            nextCard();
         return;
     }
 
     if (inSpell) {
         if (!currentFiltered || currentFiltered.length === 0) return;
+        if (isSpace)  speakCurrentSpellWord();
         if (isLeft) {
             currentSpellIndex = (currentSpellIndex - 1 + currentFiltered.length) % currentFiltered.length;
-            loadSpellingWord();
-            saveState();
+            loadSpellingWord(); saveState();
         }
         if (isRight) {
             currentSpellIndex = (currentSpellIndex + 1) % currentFiltered.length;
-            loadSpellingWord();
-            saveState();
+            loadSpellingWord(); saveState();
         }
     }
 }
 
-
-// ✅ keydown：真正執行動作（避免左右鍵跳兩次）
 window.addEventListener('keydown', handler, true);
 
-// ✅ keyup：只阻止瀏覽器預設（不執行 prev/next/speak）
+// keyup：只擋預設行為，不執行動作
 window.addEventListener('keyup', (e) => {
     const mode = document.querySelector('.tab-btn.active')?.id || '';
     const inLearning = mode === 'tab-learning';
-    const inFlash = mode === 'tab-flashcard';
-    const inSpell = mode === 'tab-spelling';
+    const inFlash    = mode === 'tab-flashcard';
+    const inSpell    = mode === 'tab-spelling';
     if (!(inLearning || inFlash || inSpell)) return;
 
-    const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
-    const isLeft = e.code === 'ArrowLeft' || e.key === 'ArrowLeft';
-    const isRight = e.code === 'ArrowRight' || e.key === 'ArrowRight';
-    if (!(isSpace || isLeft || isRight)) return;
-
-    // 管理模式/批次輸入等不要擋（避免影響打字）
     const el = document.activeElement;
-    const typing = el && (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
-    const inputTyping = el && el.tagName === 'INPUT' && el.id !== 'spell-input';
-    if (typing || inputTyping) return;
+    const typing = el && (
+        el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable ||
+        (el.tagName === 'INPUT' && el.id !== 'spell-input')
+    );
+    if (typing) return;
+
+    const keys = ['Space',' ','Spacebar','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
+    if (!keys.includes(e.code) && !keys.includes(e.key)) return;
 
     e.preventDefault();
     e.stopPropagation();
     if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
 }, true);
-
 
 })();
 
