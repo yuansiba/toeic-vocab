@@ -509,6 +509,21 @@
         </div>
     </div>
 
+    <!-- ✅ 批量加入單字到已有分類 -->
+    <div style="margin-top: 30px; border-top: 2px dashed #eee; padding-top: 20px;">
+        <h3 style="margin-bottom:10px;">➕ 批量加入單字到已有分類</h3>
+        <p style="font-size:13px; color:#666; margin:0 0 12px 0;">選擇已存在的分類，再貼上單字清單即可批量加入；每行格式例如：apple*** 蘋果</p>
+        <select id="add-to-cat-select" style="padding:10px; border-radius:10px; border:1px solid var(--border); font-size:14px; background:white; width:100%; margin-bottom:10px; box-sizing:border-box;">
+            <option value="">-- 請選擇要加入的分類 --</option>
+        </select>
+        <textarea id="add-to-cat-bulk" class="bulk-textarea" placeholder="• efficient*** 有效率的&#10;• collaborate 合作&#10;• implement 實施"></textarea>
+        <div class="bulk-actions">
+            <button onclick="document.getElementById('add-to-cat-bulk').value=''" class="nav-btn">清空輸入</button>
+            <button onclick="batchAddToExistingCategory()" class="add-btn bulk-import-btn">批量加入</button>
+        </div>
+        <div id="add-to-cat-feedback" style="margin-top:8px; font-size:13px; min-height:20px;"></div>
+    </div>
+
     <div style="margin-top: 30px; border-top: 2px dashed #eee; padding-top: 20px;">
         <h3 style="margin-bottom:10px;">📂 自訂範圍管理與刪除</h3>
         
@@ -961,6 +976,62 @@ function initCategoryManager() {
     
     select.innerHTML = customCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
     renderManageWordList();
+
+    // ✅ 同步更新「加入單字到已有分類」的分類下拉選單（包含預設分類）
+    const addSelect = document.getElementById('add-to-cat-select');
+    if (addSelect) {
+        const defaultPages = ['Page 1','Page 2','Page 3','Page 5','Page 6','Page 7'];
+        const allCats = [...defaultPages, ...customCategories];
+        addSelect.innerHTML = '<option value="">-- 請選擇分類 --</option>' +
+            allCats.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+    }
+}
+
+// ✅ 批量加入單字到已有分類（格式與批量匯入相同）
+function batchAddToExistingCategory() {
+    const cat = document.getElementById('add-to-cat-select').value.trim();
+    const text = document.getElementById('add-to-cat-bulk').value;
+    const feedback = document.getElementById('add-to-cat-feedback');
+
+    if (!cat) { feedback.style.color = '#dc2626'; feedback.innerText = '⚠️ 請先選擇分類'; return; }
+    if (!text.trim()) { feedback.style.color = '#dc2626'; feedback.innerText = '⚠️ 請輸入單字清單'; return; }
+
+    const lines = text.split('\n');
+    let addedCount = 0;
+    let skippedCount = 0;
+    lines.forEach(line => {
+        line = line.trim().replace(/^[•\-\*0-9\.]+\s*/, '');
+        const match = line.match(/^([a-zA-Z\s\-\/\(\)\*]+?)[\s\t\:\-]+(.+)$/);
+        if (match && match[1] && match[2]) {
+            let w = match[1].trim();
+            const d = match[2].trim();
+            let starCount = 0;
+            if (w.endsWith("***"))      { starCount = 3; w = w.slice(0, -3).trim(); }
+            else if (w.endsWith("**")) { starCount = 2; w = w.slice(0, -2).trim(); }
+            else if (w.endsWith("*"))  { starCount = 1; w = w.slice(0, -1).trim(); }
+
+            if (fullData.some(i => i.w.toLowerCase() === w.toLowerCase())) {
+                skippedCount++;
+            } else {
+                customData.push({ p: cat, cat: cat, w: w, d: d, stars: starCount, isCustom: true });
+                addedCount++;
+            }
+        }
+    });
+
+    if (addedCount > 0) {
+        localStorage.setItem('customVocab', JSON.stringify(customData));
+        loadData();
+        filterData(false);
+        initCategoryManager();
+        document.getElementById('add-to-cat-bulk').value = '';
+        feedback.style.color = '#16a34a';
+        feedback.innerText = `✅ 成功加入 ${addedCount} 個單字到「${cat}」${skippedCount > 0 ? `（${skippedCount} 個重複已略過）` : ''}`;
+    } else {
+        feedback.style.color = '#dc2626';
+        feedback.innerText = skippedCount > 0 ? `⚠️ 所有單字皆已存在，沒有新增任何單字` : '⚠️ 無法辨識任何單字，請確認格式';
+    }
+    setTimeout(() => { feedback.innerText = ''; }, 4000);
 }
 
 // 👇 新增：動態列出單字和刪除按鈕
