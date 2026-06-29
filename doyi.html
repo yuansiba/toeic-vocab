@@ -544,9 +544,8 @@
         .modal-cancel { background: #f1f5f9; color: #475569; }
         .modal-confirm { background: #dc2626; color: white; }
         .modal-confirm.safe { background: var(--primary); }
-        /* 例句區塊：用 visibility 切換，保留佔位空間不跳動 */
-        #example-container { min-height: 0; transition: none; }
-        #example-container.example-hidden { visibility: hidden; border-color: transparent !important; background: transparent !important; }
+        /* 例句區塊：正面 display:none，背面 display:flex */
+        #example-container.example-hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -1756,9 +1755,6 @@ if (starsDisplay) {
         if(card.marked) cardContainer.classList.add('marked'); else cardContainer.classList.remove('marked');
         if(card.hearted) cardContainer.classList.add('hearted'); else cardContainer.classList.remove('hearted');
         updateJumpMenus();
-        // 換卡時先重置例句區塊高度，避免遺留上一張的鎖定高度
-        const exCont = document.getElementById('example-container');
-        if (exCont) { exCont.style.height = ''; exCont.style.minHeight = ''; }
         setLearnFlip(false);
     }
     function toggleMarkCurrent() {
@@ -1789,21 +1785,11 @@ if (starsDisplay) {
             flipEl.classList.add('flipped');
             const backH = backEl.scrollHeight;
             frontEl.style.minHeight = backH + 'px';
-            if (exampleEl) {
-                exampleEl.classList.remove('example-hidden');
-                exampleEl.style.height = '';      // 讓高度自然撐開
-                exampleEl.style.minHeight = '';
-            }
+            if (exampleEl) exampleEl.classList.remove('example-hidden');
         } else {
             flipEl.classList.remove('flipped');
             frontEl.style.minHeight = '';
-            if (exampleEl) {
-                // 先鎖定目前高度，再隱藏，避免收縮
-                const h = exampleEl.offsetHeight;
-                exampleEl.style.height = h + 'px';
-                exampleEl.style.minHeight = h + 'px';
-                exampleEl.classList.add('example-hidden');
-            }
+            if (exampleEl) exampleEl.classList.add('example-hidden');
         }
     }
 
