@@ -83,20 +83,19 @@
         let _writeTimer = null;
         window._saveToFirestore = function(key, value) {
             if (!_uid) return;
-            // appState（卡片位置）完全不需要同步
-            if (key === 'appState') return;
-            setSyncStatus('💾 儲存中...', '#f59e0b');
+            // appState（卡片位置）靜默同步，不顯示儲存中
+            if (key !== 'appState') setSyncStatus('💾 儲存中...', '#f59e0b');
             clearTimeout(_writeTimer);
             _writeTimer = setTimeout(async () => {
                 const docRef = doc(db, 'users', _uid);
                 const payload = {};
-                ['customVocab', 'markedWords', 'heartedWords'].forEach(k => {
+                ['customVocab', 'markedWords', 'heartedWords', 'appState'].forEach(k => {
                     const raw = localStorage.getItem(k);
                     try { payload[k] = raw ? JSON.parse(raw) : null; } catch(e) { payload[k] = null; }
                 });
                 try {
                     await setDoc(docRef, payload, { merge: true });
-                    setSyncStatus('✅ 已同步', '#16a34a');
+                    if (key !== 'appState') setSyncStatus('✅ 已同步', '#16a34a');
                 } catch(e) {
                     setSyncStatus('❌ 儲存失敗', '#dc2626');
                     console.error('Firestore write error:', e);
@@ -609,9 +608,9 @@
 
 
         <div class="nav-controls">
-            <button class="nav-btn" onclick="prevCard()">⬅️ 上一個</button>
+            <button class="nav-btn" onclick="prevCard()">上一個</button>
             <span id="learn-progress" style="margin: 0 10px; color:#666; display:flex; align-items:center;">1/10</span>
-            <button class="nav-btn" onclick="nextCard()">下一個 ➡️</button>
+            <button class="nav-btn" onclick="nextCard()">下一個</button>
         </div>
     </div>
 
@@ -842,13 +841,22 @@ function playSound(text) {
                 touchStartX = e.touches[0].clientX;
                 touchStartY = e.touches[0].clientY;
             }, { passive: true });
+
+            el.addEventListener('touchmove', e => {
+                const dx = Math.abs(e.touches[0].clientX - touchStartX);
+                const dy = Math.abs(e.touches[0].clientY - touchStartY);
+                // 水平滑動超過垂直時，鎖住頁面滾動
+                if (dx > dy && dx > 10) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
             el.addEventListener('touchend', e => {
                 const dx = e.changedTouches[0].clientX - touchStartX;
                 const dy = e.changedTouches[0].clientY - touchStartY;
-                // 只有水平滑動明顯大於垂直才觸發
                 if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy) * 1.5) {
-                    if (dx < 0) onLeft();   // 左滑 → 下一個
-                    else onRight();          // 右滑 → 上一個
+                    if (dx < 0) onLeft();
+                    else onRight();
                 }
             }, { passive: true });
         }
