@@ -544,17 +544,9 @@
         .modal-cancel { background: #f1f5f9; color: #475569; }
         .modal-confirm { background: #dc2626; color: white; }
         .modal-confirm.safe { background: var(--primary); }
-        /* 例句區塊：未翻牌時灰色佔位 */
-        #example-container { transition: opacity 0.3s; }
-        #example-container.example-hidden > * { display: none; }
-        #example-container.example-hidden { min-height: 60px; justify-content: center; align-items: center; background: #f1f5f9; border-color: #e2e8f0; }
-        #example-container.example-hidden::after {
-            content: '翻牌後顯示例句';
-            display: block;
-            text-align: center;
-            color: #cbd5e1;
-            font-size: 13px;
-        }
+        /* 例句區塊：用 visibility 切換，保留佔位空間不跳動 */
+        #example-container { min-height: 90px; }
+        #example-container.example-hidden { visibility: hidden; border-color: transparent !important; background: transparent !important; }
     </style>
 </head>
 <body>
