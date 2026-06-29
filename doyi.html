@@ -686,8 +686,9 @@
             <span id="autoplay-status" style="font-size:12px; color:#94a3b8; margin-left:8px;"></span>
         </div>
 
-        <!-- 例句區塊：導航按鈕下方，往下滑才看到 -->
+        <!-- 例句區塊：翻到背面才顯示 -->
         <div id="example-container" style="
+            display: none;
             margin: 20px auto 0 auto;
             max-width: 500px;
             background: #f8fafc;
@@ -1737,16 +1738,18 @@ if (starsDisplay) {
         const flipEl = document.getElementById('learn-flip');
         const frontEl = document.getElementById('learn-front-face');
         const backEl = document.getElementById('learn-back-face');
+        const exampleEl = document.getElementById('example-container');
         if (!flipEl) return;
 
         if (isFlip) {
             flipEl.classList.add('flipped');
-            // 翻到背面：讓正面佔位撐到和背面一樣高
             const backH = backEl.scrollHeight;
             frontEl.style.minHeight = backH + 'px';
+            if (exampleEl) exampleEl.style.display = 'flex';
         } else {
             flipEl.classList.remove('flipped');
             frontEl.style.minHeight = '';
+            if (exampleEl) exampleEl.style.display = 'none';
         }
     }
 
