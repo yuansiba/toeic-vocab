@@ -544,6 +544,17 @@
         .modal-cancel { background: #f1f5f9; color: #475569; }
         .modal-confirm { background: #dc2626; color: white; }
         .modal-confirm.safe { background: var(--primary); }
+        /* 例句區塊：未翻牌時灰色佔位 */
+        #example-container { transition: opacity 0.3s; }
+        #example-container.example-hidden > * { display: none; }
+        #example-container.example-hidden { min-height: 60px; justify-content: center; align-items: center; background: #f1f5f9; border-color: #e2e8f0; }
+        #example-container.example-hidden::after {
+            content: '翻牌後顯示例句';
+            display: block;
+            text-align: center;
+            color: #cbd5e1;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -696,9 +707,9 @@
             <span id="autoplay-status" style="font-size:12px; color:#94a3b8; margin-left:8px;"></span>
         </div>
 
-        <!-- 例句區塊：翻到背面才顯示 -->
-        <div id="example-container" style="
-            display: none;
+        <!-- 例句區塊：翻到背面才顯示內容，正面顯示灰色佔位 -->
+        <div id="example-container" class="example-hidden" style="
+            display: flex;
             margin: 20px auto 0 auto;
             max-width: 500px;
             background: #f8fafc;
@@ -1783,11 +1794,11 @@ if (starsDisplay) {
             flipEl.classList.add('flipped');
             const backH = backEl.scrollHeight;
             frontEl.style.minHeight = backH + 'px';
-            if (exampleEl) exampleEl.style.display = 'flex';
+            if (exampleEl) exampleEl.classList.remove('example-hidden');
         } else {
             flipEl.classList.remove('flipped');
             frontEl.style.minHeight = '';
-            if (exampleEl) exampleEl.style.display = 'none';
+            if (exampleEl) exampleEl.classList.add('example-hidden');
         }
     }
 
