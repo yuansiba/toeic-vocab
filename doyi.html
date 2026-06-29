@@ -626,7 +626,17 @@
             <div id="category-checkboxes" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
         </div>
 
-        <!-- 隱藏的 select 供相容舊邏輯用 -->
+        <!-- 第三行：星數篩選 -->
+        <div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span style="font-size:14px; color:#64748b; font-weight:600;">星數篩選：</span>
+                <button id="sq-all" class="fq-btn fq-active" onclick="setStarFilter('all')">全部</button>
+                <button id="sq-1" class="fq-btn" onclick="setStarFilter(1)">★</button>
+                <button id="sq-2" class="fq-btn" onclick="setStarFilter(2)">★★</button>
+                <button id="sq-3" class="fq-btn" onclick="setStarFilter(3)">★★★</button>
+                <button id="sq-none" class="fq-btn" onclick="setStarFilter('none')">無星</button>
+            </div>
+        </div>
         <select id="page-filter" style="display:none;" onchange="filterData()">
             <option value="all">全部單字</option>
             <option value="custom">我新增的單字</option>
@@ -1150,8 +1160,17 @@ function refreshCategoryOptions() {
     }
 
     // ===== 新版篩選狀態 =====
-    let activeQuickFilter = 'all';      // 'all' | 'marked' | 'hearted' | 'both' | 'wrong' | 'custom'
-    let selectedCategories = new Set(); // 空 = 全部分類
+    let activeQuickFilter = 'all';
+    let activeStarFilter = 'all';   // 'all' | 1 | 2 | 3 | 'none'
+    let selectedCategories = new Set();
+
+    function setStarFilter(val) {
+        activeStarFilter = val;
+        document.querySelectorAll('[id^="sq-"]').forEach(b => b.classList.remove('fq-active'));
+        const btn = document.getElementById('sq-' + val);
+        if (btn) btn.classList.add('fq-active');
+        filterData(true);
+    }
 
     function setQuickFilter(type) {
         activeQuickFilter = type;
@@ -1226,6 +1245,10 @@ function refreshCategoryOptions() {
         if (selectedCategories.size > 0 && activeQuickFilter !== 'wrong') {
             base = base.filter(i => selectedCategories.has(i.p));
         }
+
+        // Step 3: 星數篩選
+        if (activeStarFilter === 'none') base = base.filter(i => !i.stars || i.stars === 0);
+        else if (activeStarFilter !== 'all') base = base.filter(i => i.stars === activeStarFilter);
 
         currentFiltered = base;
 
@@ -2220,8 +2243,10 @@ function handler(e){
     const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
     const isLeft = e.code === 'ArrowLeft' || e.key === 'ArrowLeft';
     const isRight = e.code === 'ArrowRight' || e.key === 'ArrowRight';
+    const isUp = e.code === 'ArrowUp' || e.key === 'ArrowUp';
+    const isDown = e.code === 'ArrowDown' || e.key === 'ArrowDown';
 
-    if (!(isSpace || isLeft || isRight)) return;
+    if (!(isSpace || isLeft || isRight || isUp || isDown)) return;
 
     // 清焦點，避免 Space 觸發按鈕
     if (document.activeElement && 
@@ -2234,8 +2259,11 @@ function handler(e){
     e.stopPropagation();
     if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
 
-    // Space：發音
-    if (isSpace) {
+    // ↑：翻面（單字卡模式）
+    if (isUp && inLearning) { toggleLearnFlip(); return; }
+
+    // ↓ 或 Space：發音
+    if (isDown || isSpace) {
         if (inLearning || inFlash) speakCurrentCard();
         else speakCurrentSpellWord();
         return;
@@ -2278,7 +2306,9 @@ window.addEventListener('keyup', (e) => {
     const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
     const isLeft = e.code === 'ArrowLeft' || e.key === 'ArrowLeft';
     const isRight = e.code === 'ArrowRight' || e.key === 'ArrowRight';
-    if (!(isSpace || isLeft || isRight)) return;
+    const isUp = e.code === 'ArrowUp' || e.key === 'ArrowUp';
+    const isDown = e.code === 'ArrowDown' || e.key === 'ArrowDown';
+    if (!(isSpace || isLeft || isRight || isUp || isDown)) return;
 
     // 管理模式/批次輸入等不要擋（避免影響打字）
     const el = document.activeElement;
