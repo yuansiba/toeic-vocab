@@ -217,9 +217,11 @@
         /* 2. 單字卡 (學習模式) */
         #learning-view { display: none; text-align: center; }
         .learning-card {
-            background: white; padding: 40px 20px; border-radius: 15px;
+            background: white; padding: 20px; border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto;
             position: relative; border-top: 5px solid var(--primary);
+            min-height: 260px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .learning-card.marked { border-top-color: var(--secondary); background: #fffcf5; }
         .learn-word { font-size: 40px; font-weight: bold; color: var(--text); margin: 10px 0; line-height: 1.2; word-break: break-word; }
@@ -252,6 +254,10 @@
     transform-style: preserve-3d;
     transition: transform 0.5s cubic-bezier(.4,0,.2,1);
     cursor: pointer;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .learn-flip.flipped {
@@ -268,7 +274,6 @@
     padding: 20px;
     box-sizing: border-box;
     width: 100%;
-    min-height: 180px;
 }
 
 /* 正面正常流，撐開 flip 高度 */
@@ -276,23 +281,11 @@
     position: relative;
 }
 
-/* 背面絕對疊加，翻轉後才可見，但用透明 sizer 撐高度 */
+/* 背面絕對疊加 */
 .learn-back {
     position: absolute;
-    top: 0; left: 0; right: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     transform: rotateY(180deg);
-}
-
-/* 透明佔位撐開高度：翻面後背面內容高度同步給正面 */
-.learn-back-sizer {
-    visibility: hidden;
-    pointer-events: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-    box-sizing: border-box;
-    width: 100%;
 }
 
 .learn-hint {
@@ -453,7 +446,7 @@
             .bulk-actions button { flex: 1; }
 
             /* 單字卡手機適配 */
-            .learning-card { padding: 24px 14px; border-radius: 12px; }
+            .learning-card { padding: 16px 14px; border-radius: 12px; min-height: 220px; }
             .learn-word { font-size: 30px; }
             .learn-def { font-size: 30px; }
             .learn-flip { min-height: 180px; }
@@ -1776,19 +1769,14 @@ if (starsDisplay) {
     function setLearnFlip(isFlip) {
         learnFlipped = isFlip;
         const flipEl = document.getElementById('learn-flip');
-        const frontEl = document.getElementById('learn-front-face');
-        const backEl = document.getElementById('learn-back-face');
         const exampleEl = document.getElementById('example-container');
         if (!flipEl) return;
 
         if (isFlip) {
             flipEl.classList.add('flipped');
-            const backH = backEl.scrollHeight;
-            frontEl.style.minHeight = backH + 'px';
             if (exampleEl) exampleEl.classList.remove('example-hidden');
         } else {
             flipEl.classList.remove('flipped');
-            frontEl.style.minHeight = '';
             if (exampleEl) exampleEl.classList.add('example-hidden');
         }
     }
