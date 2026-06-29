@@ -385,6 +385,12 @@
         .tabs { background: rgba(255,255,255,0.78); padding: 10px; border-radius: 18px; backdrop-filter: blur(10px); }
         .tabs, .filter-section, #manage-view, #quiz-view, #spelling-view, .learning-card { box-shadow: var(--soft-shadow); }
         .tab-btn, .nav-btn, .add-btn, .option-btn, .big-play-btn, .mic-btn { transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, color .18s ease, border-color .18s ease; }
+        /* 防止手機雙擊放大 */
+        button, select, input, a {
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+        }
         .tab-btn:hover, .nav-btn:hover, .add-btn:hover, .option-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12); }
         .tab-btn:active, .nav-btn:active, .add-btn:active, .star-btn:active, .heart-btn:active, .big-play-btn:active { transform: scale(0.96); }
         .tab-btn { border-radius: 12px; background: #edf2f7; color: #334155; }
