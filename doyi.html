@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>多益單字</title>
     <!-- Firebase SDK -->
     <script type="module">
@@ -417,7 +417,38 @@
         .bulk-actions { align-items:center; }
         .bulk-import-btn { background: var(--primary) !important; border-radius: 12px; padding: 11px 22px; box-shadow: 0 10px 22px rgba(37, 99, 235, .22); }
         .big-play-btn:hover { transform: translateY(-1px) scale(1.03); }
-        @media (max-width: 640px) { body { padding: 14px; } #list-view { grid-template-columns: 1fr; } .quiz-options { grid-template-columns: 1fr; } .bulk-actions { justify-content: stretch; } .bulk-actions button { flex: 1; } }
+        @media (max-width: 640px) { 
+            body { padding: 10px; }
+            h1 { font-size: 20px; margin-bottom: 12px; }
+            #list-view { grid-template-columns: 1fr; }
+            .quiz-options { grid-template-columns: 1fr; }
+            .bulk-actions { justify-content: stretch; }
+            .bulk-actions button { flex: 1; }
+
+            /* 單字卡手機適配 */
+            .learning-card { padding: 24px 14px; border-radius: 12px; }
+            .learn-word { font-size: 32px; word-break: break-word; }
+            .learn-def { font-size: 24px; word-break: break-word; }
+            .learn-flip { min-height: 180px; }
+            #learn-example { font-size: 14px; }
+            #learn-example-zh { font-size: 13px; }
+
+            /* 發音練習翻卡 */
+            .flashcard { width: 100%; max-width: 100%; height: 200px; }
+            .card-face h2 { font-size: 28px; word-break: break-word; }
+
+            /* 拼字 */
+            .spelling-input { font-size: 22px; width: 95%; }
+            .hint-word { font-size: 30px; }
+            .hint-def { font-size: 20px; }
+
+            /* 導航按鈕手機更大更好按 */
+            .nav-btn { padding: 10px 18px; font-size: 15px; }
+            .tab-btn { padding: 8px 10px; font-size: 13px; }
+
+            /* 管理介面 */
+            #manage-view { padding: 16px; }
+        }
 
         /* ===== 新版篩選 UI ===== */
         .fq-btn {
@@ -799,6 +830,31 @@ function playSound(text) {
         document.getElementById("spell-input").addEventListener("keypress", function(event) {
             if (event.key === "Enter") checkSpelling();
         });
+
+        // ===== 手機左右滑動換卡 =====
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const SWIPE_THRESHOLD = 50; // px
+
+        function addSwipe(el, onLeft, onRight) {
+            if (!el) return;
+            el.addEventListener('touchstart', e => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+            el.addEventListener('touchend', e => {
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                const dy = e.changedTouches[0].clientY - touchStartY;
+                // 只有水平滑動明顯大於垂直才觸發
+                if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy) * 1.5) {
+                    if (dx < 0) onLeft();   // 左滑 → 下一個
+                    else onRight();          // 右滑 → 上一個
+                }
+            }, { passive: true });
+        }
+
+        addSwipe(document.getElementById('learning-view'), nextCard, prevCard);
+        addSwipe(document.getElementById('flashcard-view'), nextCard, prevCard);
     }
 
     window.onload = () => {
