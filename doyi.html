@@ -1161,14 +1161,25 @@ function refreshCategoryOptions() {
 
     // ===== 新版篩選狀態 =====
     let activeQuickFilter = 'all';
-    let activeStarFilter = 'all';   // 'all' | 1 | 2 | 3 | 'none'
     let selectedCategories = new Set();
+    let selectedStars = new Set(); // 空 = 全部
 
     function setStarFilter(val) {
-        activeStarFilter = val;
+        if (val === 'all') {
+            selectedStars.clear();
+        } else {
+            if (selectedStars.has(val)) selectedStars.delete(val);
+            else selectedStars.add(val);
+        }
         document.querySelectorAll('[id^="sq-"]').forEach(b => b.classList.remove('fq-active'));
-        const btn = document.getElementById('sq-' + val);
-        if (btn) btn.classList.add('fq-active');
+        if (selectedStars.size === 0) {
+            document.getElementById('sq-all').classList.add('fq-active');
+        } else {
+            selectedStars.forEach(v => {
+                const btn = document.getElementById('sq-' + v);
+                if (btn) btn.classList.add('fq-active');
+            });
+        }
         filterData(true);
     }
 
@@ -1246,9 +1257,13 @@ function refreshCategoryOptions() {
             base = base.filter(i => selectedCategories.has(i.p));
         }
 
-        // Step 3: 星數篩選
-        if (activeStarFilter === 'none') base = base.filter(i => !i.stars || i.stars === 0);
-        else if (activeStarFilter !== 'all') base = base.filter(i => i.stars === activeStarFilter);
+        // Step 3: 星數篩選（可複選）
+        if (selectedStars.size > 0) {
+            base = base.filter(i => {
+                const s = i.stars || 0;
+                return selectedStars.has(s) || selectedStars.has(String(s));
+            });
+        }
 
         currentFiltered = base;
 
