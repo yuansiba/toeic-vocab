@@ -116,7 +116,8 @@
 
         // 登出
         window._googleLogout = async function() {
-            if (!confirm('確定要登出嗎？')) return;
+            const ok = await showConfirm('登出', '確定要登出嗎？本機資料將被清除。', '登出', true);
+            if (!ok) return;
             await signOut(auth);
             _uid = null;
             setSyncStatus('👋 已登出', '#64748b');
@@ -221,15 +222,17 @@
             position: relative; border-top: 5px solid var(--primary);
         }
         .learning-card.marked { border-top-color: var(--secondary); background: #fffcf5; }
-        .learn-word { font-size: 48px; font-weight: bold; color: var(--text); margin: 10px 0; line-height: 1.2; }
+        .learn-word { font-size: 40px; font-weight: bold; color: var(--text); margin: 10px 0; line-height: 1.2; word-break: break-word; }
         .learn-def {
-    font-size: 35px;          /* 中文稍微大一點，閱讀更舒服 */
-    color: #2c3e50;           /* 深色，和英文一致 */
-    margin-top: 10px;            /* 不需要往下推 */
-    border-top: none;         /* ✅ 移除那條線 */
-    padding-top: 0;           /* ✅ 移除線留下的空白 */
-    text-align: center;
-}
+            font-size: 40px;
+            font-weight: bold;
+            color: var(--text);
+            margin-top: 10px;
+            border-top: none;
+            padding-top: 0;
+            text-align: center;
+            word-break: break-word;
+        }
 
         .card-star-pos { position: absolute; top: 15px; right: 20px; font-size: 32px; }
         .big-play-btn { 
@@ -246,9 +249,8 @@
 .learn-flip {
     position: relative;
     width: 100%;
-    min-height: 220px;
     transform-style: preserve-3d;
-    transition: transform 0.6s;
+    transition: transform 0.5s cubic-bezier(.4,0,.2,1);
     cursor: pointer;
 }
 
@@ -257,19 +259,40 @@
 }
 
 .learn-face {
-    position: absolute;
-    inset: 0;
     backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 20px;
     box-sizing: border-box;
+    width: 100%;
+    min-height: 180px;
 }
 
+/* 正面正常流，撐開 flip 高度 */
+.learn-front {
+    position: relative;
+}
+
+/* 背面絕對疊加，翻轉後才可見，但用透明 sizer 撐高度 */
 .learn-back {
+    position: absolute;
+    top: 0; left: 0; right: 0;
     transform: rotateY(180deg);
+}
+
+/* 透明佔位撐開高度：翻面後背面內容高度同步給正面 */
+.learn-back-sizer {
+    visibility: hidden;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .learn-hint {
@@ -278,7 +301,6 @@
     color: #999;
 }
 
-/* 避免點到按鈕也翻卡（按鈕仍可點） */
 .learning-card button { cursor: pointer; }
 
 
@@ -432,11 +454,12 @@
 
             /* 單字卡手機適配 */
             .learning-card { padding: 24px 14px; border-radius: 12px; }
-            .learn-word { font-size: 32px; word-break: break-word; }
-            .learn-def { font-size: 24px; word-break: break-word; }
+            .learn-word { font-size: 30px; }
+            .learn-def { font-size: 30px; }
             .learn-flip { min-height: 180px; }
             #learn-example { font-size: 14px; }
             #learn-example-zh { font-size: 13px; }
+            #example-container { padding: 12px 14px; margin: 12px auto 0 auto; }
 
             /* 發音練習翻卡 */
             .flashcard { width: 100%; max-width: 100%; height: 200px; }
@@ -484,12 +507,64 @@
         .cat-chip.selected { background: #eff6ff; border-color: var(--primary); color: var(--primary); font-weight: 700; }
         .cat-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; flex-shrink:0; transition: .18s; }
         .cat-chip.selected .chip-dot { background: var(--primary); }
+        /* ===== Toast 提示 ===== */
+        #toast-container {
+            position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+            z-index: 9999; display: flex; flex-direction: column; align-items: center; gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            background: #1e293b; color: white; padding: 12px 22px; border-radius: 24px;
+            font-size: 14px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+            opacity: 0; transform: translateY(16px);
+            transition: opacity .3s, transform .3s;
+            pointer-events: none; max-width: 320px; text-align: center; line-height: 1.5;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #16a34a; }
+        .toast.error   { background: #dc2626; }
+        .toast.warn    { background: #d97706; }
+
+        /* ===== 自訂 Confirm Modal ===== */
+        #modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45); z-index: 9998;
+            align-items: center; justify-content: center;
+        }
+        #modal-overlay.show { display: flex; }
+        #modal-box {
+            background: white; border-radius: 18px; padding: 28px 24px 20px;
+            max-width: 320px; width: 90%; box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        #modal-box h3 { margin: 0 0 10px; font-size: 17px; color: #1e293b; }
+        #modal-box p  { margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6; }
+        .modal-btns { display: flex; gap: 10px; justify-content: center; }
+        .modal-btns button { flex: 1; padding: 10px; border-radius: 12px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
+        .modal-cancel { background: #f1f5f9; color: #475569; }
+        .modal-confirm { background: #dc2626; color: white; }
+        .modal-confirm.safe { background: var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>🚀 多益單字全方位訓練</h1>
+
+    <!-- Toast 提示 -->
+    <div id="toast-container"></div>
+
+    <!-- 自訂 Confirm Modal -->
+    <div id="modal-overlay">
+        <div id="modal-box">
+            <h3 id="modal-title"></h3>
+            <p id="modal-msg"></p>
+            <div class="modal-btns">
+                <button class="modal-cancel" id="modal-cancel-btn">取消</button>
+                <button class="modal-confirm" id="modal-confirm-btn">確定</button>
+            </div>
+        </div>
+    </div>
     <div style="text-align:center; margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap;">
         <!-- 登入按鈕 -->
         <button id="google-login-btn" onclick="window._googleLogin()" style="
@@ -587,36 +662,48 @@
 
     <div class="learn-flip" id="learn-flip">
         <!-- 正面：英文 -->
-        <div class="learn-face learn-front">
+        <div class="learn-face learn-front" id="learn-front-face">
             <div class="learn-word" id="learn-word">Word</div>
         </div>
 
-<!-- 背面：中文 -->
-<div class="learn-face learn-back">
-    <div class="learn-def" id="learn-def">Definition</div>
-    
-    <!-- 這裡不應該有任何孤立的 < 符號 -->
-    <div id="example-container" style="margin-top: 20px; max-width: 85%; text-align: left; display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 0 15px; box-sizing: border-box;">
-        <!-- 英文例句 -->
-        <div id="learn-example" style="font-size: 17px; color: #1e293b; font-weight: 500; line-height: 1.4; word-break: break-word;"></div>
-        
-        <!-- 例句的中文翻譯 -->
-        <div id="learn-example-zh" style="font-size: 15px; color: #475569; font-weight: 400; line-height: 1.4; word-break: break-word;"></div>
-        
-        <!-- 發音按鈕 -->
-        <button id="speak-example-btn" style="display: none; align-self: flex-start; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; margin-top: 5px;" onclick="event.stopPropagation();">🔊 聽例句發音</button>
-    </div>
-</div>
+        <!-- 背面：中文 -->
+        <div class="learn-face learn-back" id="learn-back-face">
+            <div class="learn-def" id="learn-def">Definition</div>
+        </div>
     </div>
 
     <button class="big-play-btn" onclick="event.stopPropagation(); speakCurrentCard();">🔊</button>
 </div>
 
-
+<!-- 例句區塊（卡片外，導航按鈕上方）-->
         <div class="nav-controls">
             <button class="nav-btn" onclick="prevCard()">上一個</button>
             <span id="learn-progress" style="margin: 0 10px; color:#666; display:flex; align-items:center;">1/10</span>
             <button class="nav-btn" onclick="nextCard()">下一個</button>
+        </div>
+        <div style="text-align:center; margin-top:12px;">
+            <button id="autoplay-btn" class="nav-btn" onclick="toggleAutoPlay()" style="font-size:13px; padding:7px 18px; color:#475569;">▶ 自動播放</button>
+            <span id="autoplay-status" style="font-size:12px; color:#94a3b8; margin-left:8px;"></span>
+        </div>
+
+        <!-- 例句區塊：導航按鈕下方，往下滑才看到 -->
+        <div id="example-container" style="
+            margin: 20px auto 0 auto;
+            max-width: 500px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-sizing: border-box;
+            text-align: left;
+        ">
+            <div style="font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2px;">📖 例句</div>
+            <div id="learn-example" style="font-size: 16px; color: #1e293b; font-weight: 500; line-height: 1.5; word-break: break-word;"></div>
+            <div id="learn-example-zh" style="font-size: 14px; color: #475569; font-weight: 400; line-height: 1.5; word-break: break-word;"></div>
+            <button id="speak-example-btn" style="display: none; align-self: flex-start; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 5px 12px; border-radius: 20px; font-size: 13px; cursor: pointer; margin-top: 4px;">🔊 聽例句</button>
         </div>
     </div>
 
@@ -740,6 +827,40 @@
 </div>
 
 <script>
+    // ===== Toast 提示 =====
+    function showToast(msg, type = '', duration = 2500) {
+        const container = document.getElementById('toast-container');
+        const el = document.createElement('div');
+        el.className = 'toast' + (type ? ' ' + type : '');
+        el.innerText = msg;
+        container.appendChild(el);
+        requestAnimationFrame(() => { el.classList.add('show'); });
+        setTimeout(() => {
+            el.classList.remove('show');
+            setTimeout(() => el.remove(), 350);
+        }, duration);
+    }
+
+    // ===== 自訂 Confirm（回傳 Promise）=====
+    function showConfirm(title, msg, confirmText = '確定', danger = true) {
+        return new Promise(resolve => {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = msg;
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            confirmBtn.innerText = confirmText;
+            confirmBtn.className = 'modal-confirm' + (danger ? '' : ' safe');
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.add('show');
+            const cleanup = (result) => {
+                overlay.classList.remove('show');
+                confirmBtn.replaceWith(confirmBtn.cloneNode(true)); // 移除舊 listener
+                document.getElementById('modal-cancel-btn').replaceWith(document.getElementById('modal-cancel-btn').cloneNode(true));
+                resolve(result);
+            };
+            document.getElementById('modal-confirm-btn').addEventListener('click', () => cleanup(true), { once: true });
+            document.getElementById('modal-cancel-btn').addEventListener('click', () => cleanup(false), { once: true });
+        });
+    }
     // ===== 標準英文發音（全域鎖定）=====
 let STANDARD_VOICE = null;
 
@@ -834,6 +955,13 @@ function playSound(text) {
         initCategoryManager();
         document.getElementById("spell-input").addEventListener("keypress", function(event) {
             if (event.key === "Enter") checkSpelling();
+        });
+
+        // 手機鍵盤彈起時，自動捲動讓輸入框可見
+        document.getElementById("spell-input").addEventListener("focus", function() {
+            setTimeout(() => {
+                this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 400);
         });
 
         // ===== 手機左右滑動換卡 =====
@@ -1315,89 +1443,53 @@ function renderManageWordList() {
 
 // 👇 新增：個別單字刪除功能
 function deleteSingleWord(wordText, categoryName) {
-    if (!confirm(`確定要刪除自訂範圍「${categoryName}」中的單字「${wordText}」嗎？`)) return;
-    fullData = fullData.filter(item => !(item.w === wordText && item.p === categoryName));
-    
-    if (typeof saveState === 'function') saveState();
-    else if (typeof saveData === 'function') saveData();
-    
-    renderManageWordList();
-    if (typeof filterData === 'function') filterData();
-    alert("單字已成功刪除！");
+    showConfirm('刪除單字', `確定要刪除「${categoryName}」中的「${wordText}」嗎？`).then(ok => {
+        if (!ok) return;
+        fullData = fullData.filter(item => !(item.w === wordText && item.p === categoryName));
+        if (typeof saveState === 'function') saveState();
+        renderManageWordList();
+        if (typeof filterData === 'function') filterData();
+        showToast('✅ 單字已刪除', 'success');
+    });
 }
 
 // 👇 新增：自訂分類改名功能
 function renameCategory() {
     const oldName = document.getElementById('manage-category-select').value;
     const newName = document.getElementById('rename-category-input').value.trim();
-    
-    if (!oldName) return alert("請先選取要改名的分類！");
-    if (!newName) return alert("請輸入新的分類名稱！");
-    if (oldName === newName) return alert("新名稱不能與舊名稱相同！");
-    
-    fullData.forEach(item => {
-        if (item.p === oldName) item.p = newName;
-    });
-    
+    if (!oldName) { showToast('⚠️ 請先選取要改名的分類', 'warn'); return; }
+    if (!newName) { showToast('⚠️ 請輸入新的分類名稱', 'warn'); return; }
+    if (oldName === newName) { showToast('⚠️ 新名稱不能與舊名稱相同', 'warn'); return; }
+    fullData.forEach(item => { if (item.p === oldName) item.p = newName; });
     if (typeof saveState === 'function') saveState();
     else if (typeof saveData === 'function') saveData();
-    
-    document.getElementById('rename-category-input').value = "";
-    
-    initCategoryManager(); 
+    document.getElementById('rename-category-input').value = '';
+    initCategoryManager();
     if (typeof updatePageFilter === 'function') updatePageFilter();
     if (typeof filterData === 'function') filterData();
-    
-    alert(`分類已由「${oldName}」成功更名為「${newName}」！`);
+    showToast(`✅ 分類已更名為「${newName}」`, 'success');
 }
 
 // 👇 新增：一鍵刪除整個自訂分類的所有單字
 function deleteEntireCategory() {
     const selectedCat = document.getElementById('manage-category-select').value;
-    
-    if (!selectedCat) {
-        alert("請先選取要刪除的分類！");
-        return;
-    }
-    
-    // 計算該分類下總共有幾個單字，方便提示使用者
+    if (!selectedCat) { showToast('⚠️ 請先選取要刪除的分類', 'warn'); return; }
     const wordCount = fullData.filter(item => item.p === selectedCat).length;
-    
-    // 第一次安全確認
-    if (!confirm(`⚠️ 警告：您確定要刪除整個「${selectedCat}」分類嗎？\n這將會一次刪除該分類內的所有 ${wordCount} 個單字，且無法復原！`)) {
-        return;
-    }
-    
-    // 第二次防止誤點確認
-    if (!confirm(`請再次確認：真的要清空「${selectedCat}」內的所有單字嗎？`)) {
-        return;
-    }
-    
-    // 核心邏輯：從總資料庫與自訂資料庫中剔除該分類名稱的所有項目
-    fullData = fullData.filter(item => item.p !== selectedCat);
-    if (typeof customData !== 'undefined') {
-        customData = customData.filter(item => item.p !== selectedCat && item.cat !== selectedCat);
-        localStorage.setItem('customVocab', JSON.stringify(customData));
-        if (window._saveToFirestore) window._saveToFirestore('customVocab', customData);
-    }
-
-    // 儲存最新的狀態
-    if (typeof saveState === 'function') saveState();
-    else if (typeof saveData === 'function') saveData();
-    
-    // 重新載入數據並重新整理網頁上的各個下拉選單與列表
-    if (typeof loadData === 'function') loadData();
-    
-    // 將主介面的篩選器切換回首頁預設值（例如 "all" 全部單字）
-    const pageFilter = document.getElementById('page-filter');
-    if (pageFilter) pageFilter.value = 'all';
-    
-    // 刷新管理面板介面
-    initCategoryManager();
-    if (typeof buildCategoryChips === 'function') buildCategoryChips();
-    if (typeof filterData === 'function') filterData(true);
-    
-    alert(`成功刪除分類「${selectedCat}」及其內部的 ${wordCount} 個單字！`);
+    showConfirm('刪除整個分類', `確定要刪除「${selectedCat}」嗎？\n共 ${wordCount} 個單字將全部消失，無法復原。`, '確定刪除', true).then(ok => {
+        if (!ok) return;
+        fullData = fullData.filter(item => item.p !== selectedCat);
+        if (typeof customData !== 'undefined') {
+            customData = customData.filter(item => item.p !== selectedCat && item.cat !== selectedCat);
+            localStorage.setItem('customVocab', JSON.stringify(customData));
+            if (window._saveToFirestore) window._saveToFirestore('customVocab', customData);
+        }
+        if (typeof saveState === 'function') saveState();
+        if (typeof loadData === 'function') loadData();
+        initCategoryManager();
+        if (typeof buildCategoryChips === 'function') buildCategoryChips();
+        if (typeof filterData === 'function') filterData(true);
+        showToast(`✅ 已刪除分類「${selectedCat}」`, 'success');
+    });
 }
     // --- 管理功能 ---
     function addCustomWord() {
@@ -1405,8 +1497,8 @@ function deleteEntireCategory() {
         const dInput = document.getElementById('new-def');
         const w = wInput.value.trim();
         const d = dInput.value.trim();
-        if(!w || !d) { alert("請輸入英文單字與中文解釋"); return; }
-        if(fullData.some(i => i.w.toLowerCase() === w.toLowerCase())) { alert("這個單字已經存在囉！"); return; }
+        if(!w || !d) { showToast('⚠️ 請輸入英文單字與中文解釋', 'warn'); return; }
+        if(fullData.some(i => i.w.toLowerCase() === w.toLowerCase())) { showToast('⚠️ 這個單字已經存在囉！', 'warn'); return; }
         const selectedCat = document.getElementById('new-cat-select')?.value || '';
         const typedCat = document.getElementById('new-cat-input')?.value.trim() || '';
         const cat = typedCat || selectedCat || "custom";
@@ -1415,15 +1507,15 @@ function deleteEntireCategory() {
         localStorage.setItem('customVocab', JSON.stringify(customData));
         if (window._saveToFirestore) window._saveToFirestore('customVocab', customData);
         wInput.value = ''; dInput.value = ''; wInput.focus();
-        loadData(); renderCustomList(); filterData(false); alert(`成功加入: ${w}`);
+        loadData(); renderCustomList(); filterData(false); showToast(`✅ 成功加入：${w}`, 'success');
     }
 function batchImport() {
         const text = document.getElementById('bulk-input').value;
         const categoryInput = document.getElementById('bulk-category');
         const category = categoryInput ? categoryInput.value.trim() : '';
 
-        if (!category) { alert("請先輸入這批單字的分類名稱"); return; }
-        if (!text.trim()) { alert("請輸入內容"); return; }
+        if (!category) { showToast('⚠️ 請先輸入分類名稱', 'warn'); return; }
+        if (!text.trim()) { showToast('⚠️ 請輸入內容', 'warn'); return; }
 
         const lines = text.split('\n');
         let addedCount = 0;
@@ -1470,8 +1562,8 @@ function batchImport() {
             if (typeof initCategoryManager === 'function') initCategoryManager();
             if (typeof buildCategoryChips === 'function') buildCategoryChips();
             
-            alert(`成功匯入 ${addedCount} 個單字到「${category}」！`);
-        } else { alert("沒有匯入任何單字"); }
+            showToast(`✅ 成功匯入 ${addedCount} 個單字到「${category}」`, 'success');
+        } else { showToast('⚠️ 沒有匯入任何單字，請確認格式', 'warn'); }
     }
     function renderCustomList() {
         const list = document.getElementById('custom-word-list');
@@ -1482,18 +1574,24 @@ function batchImport() {
         `).join('');
     }
     function deleteCustomWord(word) {
-        if(!confirm(`確定要刪除 "${word}" 嗎？`)) return;
-        customData = customData.filter(i => i.w !== word);
-        localStorage.setItem('customVocab', JSON.stringify(customData));
-        if (window._saveToFirestore) window._saveToFirestore('customVocab', customData);
-        loadData(); renderCustomList(); filterData(false);
+        showConfirm('刪除單字', `確定要刪除「${word}」嗎？`).then(ok => {
+            if (!ok) return;
+            customData = customData.filter(i => i.w !== word);
+            localStorage.setItem('customVocab', JSON.stringify(customData));
+            if (window._saveToFirestore) window._saveToFirestore('customVocab', customData);
+            loadData(); renderCustomList(); filterData(false);
+            showToast('✅ 已刪除', 'success');
+        });
     }
     function clearCustomWords() {
-        if(!confirm("確定要刪除所有您新增的單字嗎？")) return;
-        localStorage.removeItem('customVocab');
-        if (window._saveToFirestore) window._saveToFirestore('customVocab', []);
-        customData = [];
-        loadData(); renderCustomList(); filterData(false); alert("已清除");
+        showConfirm('清除所有自訂單字', '確定要刪除所有您新增的單字嗎？此動作無法復原。', '全部刪除', true).then(ok => {
+            if (!ok) return;
+            localStorage.removeItem('customVocab');
+            if (window._saveToFirestore) window._saveToFirestore('customVocab', []);
+            customData = [];
+            loadData(); renderCustomList(); filterData(false);
+            showToast('✅ 已清除所有自訂單字', 'success');
+        });
     }
 // 全域變數，用來暫存目前的例句文字
 // 全域變數，用來暫存目前的例句文字
@@ -1635,12 +1733,22 @@ if (starsDisplay) {
     }
 
     function setLearnFlip(isFlip) {
-    learnFlipped = isFlip;
-    const flipEl = document.getElementById('learn-flip');
-    if (!flipEl) return;
-    if (learnFlipped) flipEl.classList.add('flipped');
-    else flipEl.classList.remove('flipped');
-}
+        learnFlipped = isFlip;
+        const flipEl = document.getElementById('learn-flip');
+        const frontEl = document.getElementById('learn-front-face');
+        const backEl = document.getElementById('learn-back-face');
+        if (!flipEl) return;
+
+        if (isFlip) {
+            flipEl.classList.add('flipped');
+            // 翻到背面：讓正面佔位撐到和背面一樣高
+            const backH = backEl.scrollHeight;
+            frontEl.style.minHeight = backH + 'px';
+        } else {
+            flipEl.classList.remove('flipped');
+            frontEl.style.minHeight = '';
+        }
+    }
 
 function toggleLearnFlip() {
     setLearnFlip(!learnFlipped);
@@ -1657,9 +1765,95 @@ function toggleLearnFlip() {
         document.getElementById('card-progress').innerText = `${currentIndex + 1} / ${currentFiltered.length}`;
         updateJumpMenus();
     }
-    function nextCard() { currentIndex = (currentIndex + 1) % currentFiltered.length; updateCard(); updateLearningCard(); saveState(); }
-    function prevCard() { currentIndex = (currentIndex - 1 + currentFiltered.length) % currentFiltered.length; updateCard(); updateLearningCard(); saveState(); }
+    function nextCard() { if(isAutoPlaying) stopAutoPlay(); currentIndex = (currentIndex + 1) % currentFiltered.length; updateCard(); updateLearningCard(); saveState(); }
+    function prevCard() { if(isAutoPlaying) stopAutoPlay(); currentIndex = (currentIndex - 1 + currentFiltered.length) % currentFiltered.length; updateCard(); updateLearningCard(); saveState(); }
     function speakCurrentCard() { playSound(currentFiltered[currentIndex].w); }
+
+    // ===== 自動播放 =====
+    let autoPlayTimer = null;
+    let isAutoPlaying = false;
+    const AUTO_PLAY_INTERVAL = 4000; // 4秒換下一張
+
+    function toggleAutoPlay() {
+        if (isAutoPlaying) {
+            stopAutoPlay();
+        } else {
+            startAutoPlay();
+        }
+    }
+
+    function startAutoPlay() {
+        isAutoPlaying = true;
+        const btn = document.getElementById('autoplay-btn');
+        const status = document.getElementById('autoplay-status');
+        if (btn) { btn.innerText = '⏹ 停止'; btn.style.color = '#dc2626'; btn.style.borderColor = '#fca5a5'; }
+        if (status) status.innerText = '';
+
+        function speakCard() {
+            const card = currentFiltered[currentIndex];
+            if (!card) return;
+            // 先講英文
+            const engMsg = new SpeechSynthesisUtterance(card.w);
+            engMsg.lang = 'en-US';
+            engMsg.rate = 0.85;
+            if (STANDARD_VOICE) engMsg.voice = STANDARD_VOICE;
+
+            // 再講中文（取中文部分，去掉 * 後面的英文補充）
+            const zhText = card.d.replace(/\s*\*.*$/, '').trim();
+
+            speechSynthesis.cancel();
+            speechSynthesis.speak(engMsg);
+            engMsg.onend = () => { playChineseGoogleTTS(zhText); };
+        }
+
+        // 先播當前
+        speakCard();
+        autoPlayTimer = setInterval(() => {
+            currentIndex = (currentIndex + 1) % currentFiltered.length;
+            updateCard();
+            updateLearningCard();
+            saveState();
+            speakCard();
+        }, AUTO_PLAY_INTERVAL);
+    }
+
+    function stopAutoPlay() {
+        isAutoPlaying = false;
+        clearInterval(autoPlayTimer);
+        autoPlayTimer = null;
+        // 停止 Google TTS audio
+        if (window._zhAudio) { window._zhAudio.pause(); window._zhAudio = null; }
+        const btn = document.getElementById('autoplay-btn');
+        const status = document.getElementById('autoplay-status');
+        if (btn) { btn.innerText = '▶ 自動播放'; btn.style.color = '#475569'; btn.style.borderColor = ''; }
+        if (status) status.innerText = '';
+    }
+
+    // ===== Google TTS 中文發音（清晰度遠優於 Web Speech API）=====
+    function playChineseGoogleTTS(text) {
+        if (!text) return;
+        // 清理文字：只保留中文、數字、基本標點
+        const cleanText = text.replace(/\s*\*.*$/, '').trim();
+        if (!cleanText) return;
+
+        // 停止前一個音訊
+        if (window._zhAudio) { window._zhAudio.pause(); window._zhAudio = null; }
+
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText)}&tl=zh-TW&client=tw-ob&ttsspeed=0.8`;
+        const audio = new Audio(url);
+        audio.crossOrigin = 'anonymous';
+        window._zhAudio = audio;
+        audio.play().catch(() => {
+            // fallback: Web Speech API
+            const msg = new SpeechSynthesisUtterance(cleanText);
+            msg.lang = 'zh-TW';
+            msg.rate = 0.75;
+            const voices = speechSynthesis.getVoices();
+            const v = voices.find(v => v.lang === 'zh-TW') || null;
+            if (v) msg.voice = v;
+            speechSynthesis.speak(msg);
+        });
+    }
 
 // --- 語音辨識 (精準且穩定版) ---
 const recognition = window.SpeechRecognition || window.webkitSpeechRecognition ? new (window.SpeechRecognition || window.webkitSpeechRecognition)() : null;
@@ -1673,7 +1867,7 @@ if (recognition) {
 
 function startRecognition() {
     if (!recognition || currentFiltered.length === 0) {
-        alert("無法啟動語音辨識。");
+        showToast('⚠️ 無法啟動語音辨識', 'warn');
         return;
     }
 
